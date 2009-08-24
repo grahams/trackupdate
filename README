@@ -1,0 +1,23 @@
+nicecast-trackupdate v1.0
+(c) 2009 - Sean M. Graham 
+
+This code exists under an MIT license, see LICENSE for details
+
+--
+
+This is a simple script which polls iTunes every 10 seconds and writes
+information about the current track to Nicecast's "NowPlaying.txt" file.
+
+This script requires 'appscript' be installed, information about appscript
+can be found here:
+
+http://appscript.sourceforge.net/py-appscript/index.html
+
+While this script is running, you may notice a persistent bouncing dock icon
+for python.  This annoyed me, so I removed it by editing:
+
+/System/Library/Frameworks/Python.framework/Versions/2.5/Resources/Python.app/Contents/Info.plist
+
+and adding the following key to the <dict> tag:
+    <key>NSUIElement</key>
+    <string>1</string>
