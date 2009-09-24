@@ -1,4 +1,5 @@
 [trackupdate]
+# You can blacklist an album name (to omit it from the listings)
 ignoreAlbum: Radio Programme
 
 [wiki]
