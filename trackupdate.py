@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/opt/local/bin/python
 
 # Copyright (c) 2009 Sean M. Graham <www.sean-graham.com>
 # 
@@ -24,6 +24,7 @@ import os
 import time
 import sys
 import getopt
+import ConfigParser
 
 from datetime import date
 from appscript import *
@@ -44,6 +45,8 @@ Example:
 
 wfh = None
 wikiFilePath = ""
+wikiArchiveURL = ""
+ignoreAlbum = ""
 createWikiText = False
 trackArtist = ""
 trackName  = ""
@@ -52,6 +55,30 @@ trackTime = ""
 episodeNumber = "XX"
 
 def main(argv):
+    # process config file
+    try:
+        config = ConfigParser.ConfigParser()
+        config.read(os.path.expanduser('~/.trackupdaterc'))
+    except ConfigParser.MissingSectionHeaderError:
+        print "Warning: Invalid config file, no [trackupdate] section."
+
+    global wikiFilePath
+    global wikiArchiveURL
+    global ignoreAlbum
+    global createWikiText
+
+    try:
+        wikiFilePath = config.get('wiki', 'wikiTextDirectory')
+        wikiArchiveURL = config.get('wiki', 'wikiArchiveURL')
+        ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
+    except ConfigParser.NoSectionError:
+        pass
+    except ConfigParser.NoOptionError:
+        pass
+
+    if(wikiFilePath != ""):
+        createWikiText = True
+
     # process command-line arguments
     if(len(argv) > 0):
         try:
@@ -66,13 +93,8 @@ def main(argv):
 
         for o, a in opts:
             if o in ("-w", "--wiki"):
-                global createWikiText
-                global wikiFilePath 
-
                 createWikiText = True
                 wikiFilePath = a
-                if(wikiFilePath.endswith('/') != True):
-                    wikiFilePath += "/"
             elif o in ("-e", "--episode"):
                 global episodeNumber
 
@@ -82,6 +104,9 @@ def main(argv):
                 sys.exit()
             else:
                 assert False, "unhandled option"
+
+    if(wikiFilePath.endswith('/') != True):
+        wikiFilePath += "/"
 
     try:
         iTunes = app('iTunes')
@@ -120,6 +145,10 @@ def processCurrentTrack(currentTrack):
         trackAlbum = iAlbum
         trackTime = iTime
 
+        # if the album name matches the blacklist name don't do anything
+        if( trackAlbum == ignoreAlbum ):
+            return
+
         fh = open(os.path.expanduser(
             '~/Library/Application Support/Nicecast/NowPlaying.txt'), 'w')
         fh.write("Title: " + trackName + '\n')
@@ -140,8 +169,10 @@ def processCurrentTrack(currentTrack):
 
 def initWikiFile():
     global wikiFilePath 
+    global wikiArchiveURL
 
     dateString = date.today().strftime("%Y%m%d")
+
     filename = os.path.expanduser(wikiFilePath + dateString + 
                                   "-wikitext.txt")
 
@@ -149,13 +180,15 @@ def initWikiFile():
     if(os.access(filename, os.F_OK)):
         os.unlink(filename)
 
-    # XXX: The filename/URL shouldn't be hardcoded...
     global wfh
     global episodeNumber
     wfh = open(filename, 'a')
-    wfh.write("=== [http://s3.amazonaws.com/08BJY5WG66W8YBZ9QHG2.media/grahamscast/")
-    wfh.write(dateString)
-    wfh.write("%20-%20grahams'%20completely%20normal%20radio%20programme.mp3 ")
+
+    wfh.write("=== ")
+
+    if(wikiArchiveURL != ""):
+        wfh.write("[" + date.today().strftime(wikiArchiveURL) + " ")
+
     wfh.write("Show #" + episodeNumber + " - ")
 
     # compute the suffix
@@ -167,7 +200,13 @@ def initWikiFile():
 
     wfh.write(date.today().strftime("%A, %B %d"))
     wfh.write(suffix)
-    wfh.write(date.today().strftime(", %Y] ===\n"))
+    wfh.write(date.today().strftime(", %Y"))
+
+    if(wikiArchiveURL != ""):
+        wfh.write("]")
+
+    wfh.write(" ===\n")
+
     wfh.write("""{| border=1 cellspacing=0 cellpadding=5
 |'''Song'''
 |'''Artist'''

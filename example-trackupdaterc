@@ -1,0 +1,10 @@
+[trackupdate]
+ignoreAlbum: Radio Programme
+
+[wiki]
+# The directory in which to save the wiki text file.  
+wikiTextDirectory: ~/aatemp/
+
+# If this is set, this will be used as a link in the title of the wikitext.  
+# It will be processed by strftime, so you can format it
+wikiArchiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20radio%%20free%%20internet%%20radio%%20.mp3
