@@ -29,190 +29,170 @@ import ConfigParser
 from datetime import date
 from appscript import *
 
-def usage():
-    print( "Usage: trackupdate.py [arguments]" )
-    print( """
-This is a simple script which polls iTunes every 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
+class TrackUpdate:
+    wfh = None
+    wikiFilePath = ""
+    wikiArchiveURL = ""
+    ignoreAlbum = ""
+    createWikiText = False
+    trackArtist = ""
+    trackName  = ""
+    trackAlbum = ""
+    trackTime = ""
+    episodeNumber = "XX"
 
-Arguments:
-    -w  --wiki      directory to place wiki-formatted table of songs (optional) 
-    -e  --episode   the episode number (optional, only used in wiki text)
-    -h  --help      show this help page
+    def usage(self):
+        print( "Usage: trackupdate.py [arguments]" )
+        print( """
+    This is a simple script which polls iTunes every 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
 
-Example:
-    ./trackupdate.py --wiki ~/aatemp/ 
-""")
+    Arguments:
+        -w  --wiki      directory to place wiki-formatted table of songs (optional) 
+        -e  --episode   the episode number (optional, only used in wiki text)
+        -h  --help      show this help page
 
-wfh = None
-wikiFilePath = ""
-wikiArchiveURL = ""
-ignoreAlbum = ""
-createWikiText = False
-trackArtist = ""
-trackName  = ""
-trackAlbum = ""
-trackTime = ""
-episodeNumber = "XX"
+    Example:
+        ./trackupdate.py --wiki ~/aatemp/ 
+    """)
 
-def main(argv):
-    # process config file
-    try:
-        config = ConfigParser.ConfigParser()
-        config.read(os.path.expanduser('~/.trackupdaterc'))
-    except ConfigParser.MissingSectionHeaderError:
-        print "Warning: Invalid config file, no [trackupdate] section."
-
-    global wikiFilePath
-    global wikiArchiveURL
-    global ignoreAlbum
-    global createWikiText
-
-    try:
-        wikiFilePath = config.get('wiki', 'wikiTextDirectory')
-        wikiArchiveURL = config.get('wiki', 'wikiArchiveURL')
-        ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
-    except ConfigParser.NoSectionError:
-        pass
-    except ConfigParser.NoOptionError:
-        pass
-
-    if(wikiFilePath != ""):
-        createWikiText = True
-
-    # process command-line arguments
-    if(len(argv) > 0):
+    def __init__(self,argv):
+        # process config file
         try:
-            opts, args = getopt.getopt(sys.argv[1:], "hw:e:", ["help",
-                                                               "wiki=",
-                                                               "episode="])
-        except getopt.GetoptError, err:
-            # print help information and exit:
-            print str(err) # will print something like "option -a not recognized"
-            usage()
-            sys.exit(2)
+            config = ConfigParser.ConfigParser()
+            config.read(os.path.expanduser('~/.trackupdaterc'))
+        except ConfigParser.MissingSectionHeaderError:
+            print "Warning: Invalid config file, no [trackupdate] section."
 
-        for o, a in opts:
-            if o in ("-w", "--wiki"):
-                createWikiText = True
-                wikiFilePath = a
-            elif o in ("-e", "--episode"):
-                global episodeNumber
+        try:
+            self.wikiFilePath = config.get('wiki', 'wikiTextDirectory')
+            self.wikiArchiveURL = config.get('wiki', 'self.wikiArchiveURL')
+            self.ignoreAlbum = config.get('trackupdate', 'self.ignoreAlbum')
+        except ConfigParser.NoSectionError:
+            pass
+        except ConfigParser.NoOptionError:
+            pass
 
-                episodeNumber = a
-            elif o in ("-h", "--help"):
+        if(self.wikiFilePath != ""):
+            self.createWikiText = True
+
+        # process command-line arguments
+        if(len(argv) > 0):
+            try:
+                opts, args = getopt.getopt(sys.argv[1:], "hw:e:", ["help",
+                                                                   "wiki=",
+                                                                   "episode="])
+            except getopt.GetoptError, err:
+                # print help information and exit:
+                print str(err) # will print something like "option -a not recognized"
                 usage()
-                sys.exit()
-            else:
-                assert False, "unhandled option"
+                sys.exit(2)
 
-    if(wikiFilePath.endswith('/') != True):
-        wikiFilePath += "/"
+            for o, a in opts:
+                if o in ("-w", "--wiki"):
+                    self.createWikiText = True
+                    self.wikiFilePath = a
+                elif o in ("-e", "--episode"):
+                    self.episodeNumber = a
+                elif o in ("-h", "--help"):
+                    usage()
+                    sys.exit()
+                else:
+                    assert False, "unhandled option"
 
-    try:
-        iTunes = app('iTunes')
+        if(self.wikiFilePath.endswith('/') != True):
+            self.wikiFilePath += "/"
 
-        # prepare wiki text file (if the user requested it)
-        if( createWikiText == True ):
-            initWikiFile()
+        try:
+            iTunes = app('iTunes')
 
-        while(1):
-            if(iTunes.player_state() == k.playing):
-                processCurrentTrack(iTunes.current_track)
+            # prepare wiki text file (if the user requested it)
+            if( self.createWikiText == True ):
+                self.initWikiFile()
 
-            time.sleep(10.0)
+            while(1):
+                if(iTunes.player_state() == k.playing):
+                    self.processCurrentTrack(iTunes.current_track)
 
-    except KeyboardInterrupt,SystemExit:
-        global wfh
-        if( (createWikiText == True) and (wfh != None) ):
-            wfh.write("|}\n")
-            wfh.close()
+                time.sleep(10.0)
 
-def processCurrentTrack(currentTrack):
-    global trackArtist
-    global trackName
-    global trackAlbum
-    global trackTime
+        except KeyboardInterrupt,SystemExit:
+            if( (self.createWikiText == True) and (self.wfh != None) ):
+                self.wfh.write("|}\n")
+                self.wfh.close()
 
-    iArtist = currentTrack.artist.get().encode("utf-8")
-    iName = currentTrack.name.get().encode("utf-8")
-    iAlbum = currentTrack.album.get().encode("utf-8")
-    iTime = currentTrack.time.get().encode("utf-8")
+    def processCurrentTrack(self, currentTrack):
+        iArtist = currentTrack.artist.get().encode("utf-8")
+        iName = currentTrack.name.get().encode("utf-8")
+        iAlbum = currentTrack.album.get().encode("utf-8")
+        iTime = currentTrack.time.get().encode("utf-8")
 
-    # make sure the track has actually changed
-    if( (iArtist != trackArtist) or (iName != trackName) ):
-        trackArtist = iArtist
-        trackName  = iName
-        trackAlbum = iAlbum
-        trackTime = iTime
+        # make sure the track has actually changed
+        if( (iArtist != self.trackArtist) or (iName != self.trackName) ):
+            self.trackArtist = iArtist
+            self.trackName  = iName
+            self.trackAlbum = iAlbum
+            self.trackTime = iTime
 
-        # if the album name matches the blacklist name don't do anything
-        if( trackAlbum == ignoreAlbum ):
-            return
+            # if the album name matches the blacklist name don't do anything
+            if( self.trackAlbum == self.ignoreAlbum ):
+                return
 
-        fh = open(os.path.expanduser(
-            '~/Library/Application Support/Nicecast/NowPlaying.txt'), 'w')
-        fh.write("Title: " + trackName + '\n')
-        fh.write("Artist: " + trackArtist  + '\n')
-        fh.write("Album: " + trackAlbum  + '\n')
-        fh.write("Time: " + trackTime  + '\n')
-        fh.close()
+            fh = open(os.path.expanduser(
+                '~/Library/Application Support/Nicecast/NowPlaying.txt'), 'w')
+            fh.write("Title: " + self.trackName + '\n')
+            fh.write("Artist: " + self.trackArtist  + '\n')
+            fh.write("Album: " + self.trackAlbum  + '\n')
+            fh.write("Time: " + self.trackTime  + '\n')
+            fh.close()
 
-        global createWikiText
-        if( createWikiText == True ):
-            global wfh
-            wfh.write("|" + trackName + '\n')
-            wfh.write("|" + trackArtist + '\n')
-            wfh.write("|" + trackAlbum + '\n')
-            wfh.write("|-\n")
-        
-        print trackArtist + " - " + trackName 
+            if( self.createWikiText == True ):
+                self.wfh.write("|" + self.trackName + '\n')
+                self.wfh.write("|" + self.trackArtist + '\n')
+                self.wfh.write("|" + self.trackAlbum + '\n')
+                self.wfh.write("|-\n")
+            
+            print self.trackArtist + " - " + self.trackName 
 
-def initWikiFile():
-    global wikiFilePath 
-    global wikiArchiveURL
+    def initWikiFile(self):
+        dateString = date.today().strftime("%Y%m%d")
 
-    dateString = date.today().strftime("%Y%m%d")
+        filename = os.path.expanduser(self.wikiFilePath + dateString + 
+                                      "-wikitext.txt")
 
-    filename = os.path.expanduser(wikiFilePath + dateString + 
-                                  "-wikitext.txt")
+        # if the file already exists, delete it
+        if(os.access(filename, os.F_OK)):
+            os.unlink(filename)
 
-    # if the file already exists, delete it
-    if(os.access(filename, os.F_OK)):
-        os.unlink(filename)
+        self.wfh = open(filename, 'a')
 
-    global wfh
-    global episodeNumber
-    wfh = open(filename, 'a')
+        self.wfh.write("=== ")
 
-    wfh.write("=== ")
+        if(self.wikiArchiveURL != ""):
+            self.wfh.write("[" + date.today().strftime(self.wikiArchiveURL) + " ")
 
-    if(wikiArchiveURL != ""):
-        wfh.write("[" + date.today().strftime(wikiArchiveURL) + " ")
+        self.wfh.write("Show #" + self.episodeNumber + " - ")
 
-    wfh.write("Show #" + episodeNumber + " - ")
+        # compute the suffix
+        day = date.today().day
+        if 4 <= day <= 20 or 24 <= day <= 30:
+            suffix = "th"
+        else:
+            suffix = ["st", "nd", "rd"][day % 10 - 1]
 
-    # compute the suffix
-    day = date.today().day
-    if 4 <= day <= 20 or 24 <= day <= 30:
-        suffix = "th"
-    else:
-        suffix = ["st", "nd", "rd"][day % 10 - 1]
+        self.wfh.write(date.today().strftime("%A, %B %d"))
+        self.wfh.write(suffix)
+        self.wfh.write(date.today().strftime(", %Y"))
 
-    wfh.write(date.today().strftime("%A, %B %d"))
-    wfh.write(suffix)
-    wfh.write(date.today().strftime(", %Y"))
+        if(self.wikiArchiveURL != ""):
+            self.wfh.write("]")
 
-    if(wikiArchiveURL != ""):
-        wfh.write("]")
+        self.wfh.write(" ===\n")
 
-    wfh.write(" ===\n")
-
-    wfh.write("""{| border=1 cellspacing=0 cellpadding=5
-|'''Song'''
-|'''Artist'''
-|'''Album'''
-|-
-""")
+        self.wfh.write("{| border=1 cellspacing=0 cellpadding=5\n")
+        self.wfh.write("|'''Song'''\n")
+        self.wfh.write("|'''Artist'''\n")
+        self.wfh.write("|'''Album'''\n")
+        self.wfh.write("|-\n")
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    trackUpdate = TrackUpdate(sys.argv[1:])
