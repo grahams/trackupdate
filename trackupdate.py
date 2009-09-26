@@ -44,15 +44,15 @@ class TrackUpdate:
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
         print( """
-    This is a simple script which polls iTunes every 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
+This is a simple script which polls iTunes every 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
 
-    Arguments:
-        -w  --wiki      directory to place wiki-formatted table of songs (optional) 
-        -e  --episode   the episode number (optional, only used in wiki text)
-        -h  --help      show this help page
+Arguments:
+    -w  --wiki      directory to place wiki-formatted table of songs (optional) 
+    -e  --episode   the episode number (optional, only used in wiki text)
+    -h  --help      show this help page
 
-    Example:
-        ./trackupdate.py --wiki ~/aatemp/ 
+Example:
+    ./trackupdate.py --wiki ~/aatemp/ 
     """)
 
     def __init__(self,argv):
@@ -84,7 +84,7 @@ class TrackUpdate:
             except getopt.GetoptError, err:
                 # print help information and exit:
                 print str(err) # will print something like "option -a not recognized"
-                usage()
+                self.usage()
                 sys.exit(2)
 
             for o, a in opts:
@@ -94,7 +94,7 @@ class TrackUpdate:
                 elif o in ("-e", "--episode"):
                     self.episodeNumber = a
                 elif o in ("-h", "--help"):
-                    usage()
+                    self.usage()
                     sys.exit()
                 else:
                     assert False, "unhandled option"
