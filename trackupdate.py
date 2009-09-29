@@ -65,8 +65,8 @@ Example:
 
         try:
             self.wikiFilePath = config.get('wiki', 'wikiTextDirectory')
-            self.wikiArchiveURL = config.get('wiki', 'self.wikiArchiveURL')
-            self.ignoreAlbum = config.get('trackupdate', 'self.ignoreAlbum')
+            self.wikiArchiveURL = config.get('wiki', 'wikiArchiveURL')
+            self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
         except ConfigParser.NoSectionError:
             pass
         except ConfigParser.NoOptionError:
