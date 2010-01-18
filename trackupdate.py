@@ -29,6 +29,8 @@ import ConfigParser
 from datetime import date
 from appscript import *
 
+nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')
+
 class TrackUpdate:
     wfh = None
     wikiFilePath = ""
@@ -119,6 +121,8 @@ Example:
             if( (self.createWikiText == True) and (self.wfh != None) ):
                 self.wfh.write("|}\n")
                 self.wfh.close()
+            os.remove(nowPlayingFilePath)
+
 
     def processCurrentTrack(self, currentTrack):
         iArtist = currentTrack.artist.get().encode("utf-8")
@@ -137,8 +141,7 @@ Example:
             if( self.trackAlbum == self.ignoreAlbum ):
                 return
 
-            fh = open(os.path.expanduser(
-                '~/Library/Application Support/Nicecast/NowPlaying.txt'), 'w')
+            fh = open(nowPlayingFilePath, 'w')
             fh.write("Title: " + self.trackName + '\n')
             fh.write("Artist: " + self.trackArtist  + '\n')
             fh.write("Album: " + self.trackAlbum  + '\n')
