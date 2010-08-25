@@ -24,19 +24,15 @@ import os
 import time
 import sys
 import getopt
-import ConfigParser
+import ConfigParser;
+import glob;
 
-from datetime import date
 from appscript import *
 
-nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')
+pluginList = { }
 
 class TrackUpdate:
-    wfh = None
-    wikiFilePath = ""
-    wikiArchiveURL = ""
     ignoreAlbum = ""
-    createWikiText = False
     trackArtist = ""
     trackName  = ""
     trackAlbum = ""
@@ -49,15 +45,16 @@ class TrackUpdate:
 This is a simple script which polls iTunes every 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
 
 Arguments:
-    -w  --wiki      directory to place wiki-formatted table of songs (optional) 
-    -e  --episode   the episode number (optional, only used in wiki text)
+    -e  --episode   the episode number (optional, used by some plugins)
     -h  --help      show this help page
 
 Example:
-    ./trackupdate.py --wiki ~/aatemp/ 
+    ./trackupdate.py -e 42
     """)
 
     def __init__(self,argv):
+        config = None
+
         # process config file
         try:
             config = ConfigParser.ConfigParser()
@@ -66,22 +63,16 @@ Example:
             print "Warning: Invalid config file, no [trackupdate] section."
 
         try:
-            self.wikiFilePath = config.get('wiki', 'wikiTextDirectory')
-            self.wikiArchiveURL = config.get('wiki', 'wikiArchiveURL')
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
         except ConfigParser.NoSectionError:
             pass
-        except ConfigParser.NoOptionError:
-            pass
 
-        if(self.wikiFilePath != ""):
-            self.createWikiText = True
+        self.loadPlugins(config, self.episodeNumber)
 
         # process command-line arguments
         if(len(argv) > 0):
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "hw:e:", ["help",
-                                                                   "wiki=",
+                opts, args = getopt.getopt(sys.argv[1:], "h:e:", ["help",
                                                                    "episode="])
             except getopt.GetoptError, err:
                 # print help information and exit:
@@ -90,10 +81,7 @@ Example:
                 sys.exit(2)
 
             for o, a in opts:
-                if o in ("-w", "--wiki"):
-                    self.createWikiText = True
-                    self.wikiFilePath = a
-                elif o in ("-e", "--episode"):
+                if o in ("-e", "--episode"):
                     self.episodeNumber = a
                 elif o in ("-h", "--help"):
                     self.usage()
@@ -101,15 +89,8 @@ Example:
                 else:
                     assert False, "unhandled option"
 
-        if(self.wikiFilePath.endswith('/') != True):
-            self.wikiFilePath += "/"
-
         try:
             iTunes = app('iTunes')
-
-            # prepare wiki text file (if the user requested it)
-            if( self.createWikiText == True ):
-                self.initWikiFile()
 
             while(1):
                 if(iTunes.player_state() == k.playing):
@@ -118,10 +99,8 @@ Example:
                 time.sleep(10.0)
 
         except KeyboardInterrupt,SystemExit:
-            if( (self.createWikiText == True) and (self.wfh != None) ):
-                self.wfh.write("|}\n")
-                self.wfh.close()
-            os.remove(nowPlayingFilePath)
+            for plugin in pluginList:
+                pluginList[plugin].close();
 
 
     def processCurrentTrack(self, currentTrack):
@@ -141,61 +120,31 @@ Example:
             if( self.trackAlbum == self.ignoreAlbum ):
                 return
 
-            fh = open(nowPlayingFilePath, 'w')
-            fh.write("Title: " + self.trackName + '\n')
-            fh.write("Artist: " + self.trackArtist  + '\n')
-            fh.write("Album: " + self.trackAlbum  + '\n')
-            fh.write("Time: " + self.trackTime  + '\n')
-            fh.close()
+            for plugin in pluginList:
+                pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
 
-            if( self.createWikiText == True ):
-                self.wfh.write("|" + self.trackName + '\n')
-                self.wfh.write("|" + self.trackArtist + '\n')
-                self.wfh.write("|" + self.trackAlbum + '\n')
-                self.wfh.write("|-\n")
-            
-            print self.trackArtist + " - " + self.trackName 
 
-    def initWikiFile(self):
-        dateString = date.today().strftime("%Y%m%d")
+    def loadPlugins(self, config, episode):
+        scriptPath = "."
+        sys.path.append(scriptPath)
+        sys.path.append(scriptPath + "/plugins/")
+        pluginNames = glob.glob(scriptPath + "/plugins/*.py")
 
-        filename = os.path.expanduser(self.wikiFilePath + dateString + 
-                                      "-wikitext.txt")
+        for x in pluginNames:
+            pathName = x.replace(".py","")
+            className = x.replace(".py","").replace(scriptPath + "/plugins/","")
 
-        # if the file already exists, delete it
-        if(os.access(filename, os.F_OK)):
-            os.unlink(filename)
+            # import the module
+            mod = __import__(className, globals(), locals(), [''])
 
-        self.wfh = open(filename, 'a')
+            # find the symbol for the class
+            cls  = getattr(mod,className)
 
-        self.wfh.write("=== ")
+            # initialize the plugin
+            o = cls(config,episode)
 
-        if(self.wikiArchiveURL != ""):
-            self.wfh.write("[" + date.today().strftime(self.wikiArchiveURL) + " ")
-
-        self.wfh.write("Show #" + self.episodeNumber + " - ")
-
-        # compute the suffix
-        day = date.today().day
-        if 4 <= day <= 20 or 24 <= day <= 30:
-            suffix = "th"
-        else:
-            suffix = ["st", "nd", "rd"][day % 10 - 1]
-
-        self.wfh.write(date.today().strftime("%A, %B %d"))
-        self.wfh.write(suffix)
-        self.wfh.write(date.today().strftime(", %Y"))
-
-        if(self.wikiArchiveURL != ""):
-            self.wfh.write("]")
-
-        self.wfh.write(" ===\n")
-
-        self.wfh.write("{| border=1 cellspacing=0 cellpadding=5\n")
-        self.wfh.write("|'''Song'''\n")
-        self.wfh.write("|'''Artist'''\n")
-        self.wfh.write("|'''Album'''\n")
-        self.wfh.write("|-\n")
+            # add the plugin to the list
+            pluginList[ o.pluginName ] = o
 
 if __name__ == "__main__":
     trackUpdate = TrackUpdate(sys.argv[1:])
