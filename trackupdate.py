@@ -104,10 +104,31 @@ Example:
 
 
     def processCurrentTrack(self, currentTrack):
-        iArtist = currentTrack.artist.get().encode("utf-8")
-        iName = currentTrack.name.get().encode("utf-8")
-        iAlbum = currentTrack.album.get().encode("utf-8")
-        iTime = currentTrack.time.get().encode("utf-8")
+        iArtist = currentTrack.artist.get()
+        iName = currentTrack.name.get()
+        iAlbum = currentTrack.album.get()
+        iTime = currentTrack.time.get()
+
+        # check for missing values
+        if( iArtist != k.missing_value ):
+            iArtist = iArtist.encode("utf-8")
+        else:
+            iArtist = ""
+
+        if( iName != k.missing_value ):
+            iName = iName.encode("utf-8")
+        else:
+            iName = ""
+
+        if( iAlbum != k.missing_value ):
+            iAlbum = iAlbum.encode("utf-8")
+        else:
+            iAlbum = ""
+
+        if( iTime != k.missing_value ):
+            iTime = iTime.encode("utf-8")
+        else:
+            iTime = ""
 
         # make sure the track has actually changed
         if( (iArtist != self.trackArtist) or (iName != self.trackName) ):

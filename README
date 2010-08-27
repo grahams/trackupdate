@@ -1,12 +1,28 @@
-nicecast-trackupdate v1.0
-(c) 2009 - Sean M. Graham 
+nicecast-trackupdate v1.1
+(c) 2009-2010 - Sean M. Graham 
 
 This code exists under an MIT license, see LICENSE for details
 
 --
 
-This is a simple script which polls iTunes every 10 seconds and writes
-information about the current track to Nicecast's "NowPlaying.txt" file.
+trackupdate polls iTunes every 10 seconds for information about the
+currently playing track and hands this information to target plugins to
+perform various tasks. The currently included plugins are:
+
+- StdioTarget - Prints the current artist and track to stdout (aka "the
+  terminal")
+- NicecastTarget - Places the current track info into Nicecast's
+  "NowPlaying.txt" file
+- WikiTarget - Creates a text file containing all of the tracks played while
+  trackupdate was running.  The contents are formatted in MediaWiki's table
+  format. 
+- TwitterTarget - Posts each track's artist and name to a twitter account
+  specified in the .rc file.  Requires that python-twitter is installed
+  (http://code.google.com/p/python-twitter/)
+
+trackupdate and some of its plugins require configuration data, which is
+stored in a file named ~/.trackupdaterc. See example-trackupdaterc for
+details on the various configuration options.
 
 This script requires 'appscript' be installed, information about appscript
 can be found here:

@@ -9,3 +9,9 @@ wikiTextDirectory: ~/aatemp/
 # If this is set, this will be used as a link in the title of the wikitext.  
 # It will be processed by strftime, so you can format it
 wikiArchiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20radio%%20free%%20internet%%20radio%%20.mp3
+
+[twitter]
+username: example                  # Required
+password: pencil                   # Required
+initTweet: The show is on!         # Optional: Sent when plugin inits
+closeTweet: Thanks for listening!  # Optional: Sent when plugin closes
