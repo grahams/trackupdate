@@ -67,8 +67,6 @@ Example:
         except ConfigParser.NoSectionError:
             pass
 
-        self.loadPlugins(config, self.episodeNumber)
-
         # process command-line arguments
         if(len(argv) > 0):
             try:
@@ -88,6 +86,8 @@ Example:
                     sys.exit()
                 else:
                     assert False, "unhandled option"
+
+        self.loadPlugins(config, self.episodeNumber)
 
         try:
             iTunes = app('iTunes')
