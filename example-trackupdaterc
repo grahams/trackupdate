@@ -11,7 +11,22 @@ wikiTextDirectory: ~/aatemp/
 wikiArchiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20radio%%20free%%20internet%%20radio%%20.mp3
 
 [twitter]
-username: example                  # Required
-password: pencil                   # Required
 initTweet: The show is on!         # Optional: Sent when plugin inits
 closeTweet: Thanks for listening!  # Optional: Sent when plugin closes
+
+# You need to obtain a Consumer Key/Secret here:
+# https://twitter.com/apps/new
+OAuthConsumerKey: <key>
+OAuthConsumerSecret: <key>
+
+# These two values will be generated for you the first time you run the
+# plugin.  You will need to open a url (provided by the plugin) and
+# authorize the application WHILE LOGGED IN AS THE TWITTER ACCOUNT YOU WISH
+# TO POST TO!  Once you authorize the application you'll receive a PIN which
+# you will input into nicecast-trackupdate.  Once you have done all this,
+# the following two config values will be written to the screen.  Copy them
+# into this file and you'll never have to deal with this OAuth nonsense
+# again (i hope)
+#OAuthUserToken: <key>
+#OAuthUserTokenSecret: <key>
+

@@ -28,10 +28,11 @@ import ConfigParser;
 importSuccessful = True
 
 try:
-    import twitter
+    from oauth import oauth
+    from oauthtwitter import OAuthApi
 except ImportError:
-    print("TwitterTarget: python-twitter module not installed, check out:") 
-    print("TwitterTarget:     http://code.google.com/p/python-twitter/")
+    print("TwitterTarget: oauth-python-twitter2 module missing, check out:") 
+    print("TwitterTarget:     http://code.google.com/p/oauth-python-twitter2/")
     importSuccessful = False
 
 class TwitterTarget(Target):
@@ -39,17 +40,34 @@ class TwitterTarget(Target):
     initTweet = None
     closeTweet = None
 
+    OAuthConsumerKey = None
+    OAuthConsumerSecret = None
+    OAuthUserToken = None
+    OAuthUserTokenSecret = None
+
     def __init__(self, config, episode):
         if( importSuccessful == True ):
             try:
-                username = config.get('twitter', 'username')
-                password = config.get('twitter', 'password')
+                self.OAuthConsumerKey = config.get('twitter', 'OAuthConsumerKey')
+                self.OAuthConsumerSecret = config.get('twitter', 'OAuthConsumerSecret')
             except ConfigParser.NoSectionError:
                 print("TwitterTarget: No [twitter] section in config")
                 return
             except ConfigParser.NoOptionError:
-                print("TwitterTarget: Username/Password unspecified in config")
+                print("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
                 return
+
+            # try to read the OAuth user tokens from the config file,
+            # otherwise obtain new tokens.
+            try:
+                self.OAuthUserToken = config.get('twitter', 'OAuthUserToken')
+                self.OAuthUserTokenSecret = config.get('twitter', 'OAuthUserTokenSecret')
+            except ConfigParser.NoSectionError:
+                print("TwitterTarget: No [twitter] section in config")
+                return
+            except ConfigParser.NoOptionError:
+                print("TwitterTarget: Need to obtain OAuth Authorization.")
+                self.obtainAuth()
 
             # this is an optional config value containing a tweet to be 
             # sent on init
@@ -69,16 +87,20 @@ class TwitterTarget(Target):
             except ConfigParser.NoOptionError:
                 pass
 
-            self.api = twitter.Api(username=username, password=password)
+            self.api = OAuthApi(self.OAuthConsumerKey,
+                                self.OAuthConsumerSecret,
+                                self.OAuthUserToken,
+                                self.OAuthUserTokenSecret)
+
             if(self.initTweet != None):
-                self.api.PostUpdate(self.initTweet)
+                self.api.UpdateStatus(self.initTweet)
         return
 
     def close(self):
         if( importSuccessful == True ):
             if( self.api != None ):
                 if(self.closeTweet != None):
-                    self.api.PostUpdate(self.closeTweet)
+                    self.api.UpdateStatus(self.closeTweet)
                 return
 
     def logTrack(self, title, artist, album, time):
@@ -87,6 +109,32 @@ class TwitterTarget(Target):
                 tweet = artist + " - " + title
 
                 if( len(tweet) > 140 ):
-                    self.api.PostUpdate(tweet[0:140])
+                    self.api.UpdateStatus(tweet[0:140])
                 else:
-                    self.api.PostUpdate(tweet)
+                    self.api.UpdateStatus(tweet)
+
+    def obtainAuth(self):
+        twitter = OAuthApi(self.OAuthConsumerKey, self.OAuthConsumerSecret)
+
+        # Get the temporary credentials for our next few calls
+        temp_credentials = twitter.getRequestToken()
+
+        # User pastes this into their browser to bring back a pin number
+        print(twitter.getAuthorizationURL(temp_credentials))
+
+        # Get the pin # from the user and get our permanent credentials
+        oauth_verifier = raw_input('What is the PIN? ')
+        access_token = twitter.getAccessToken(temp_credentials, oauth_verifier)
+
+        self.OAuthUserToken = access_token['oauth_token']
+        self.OAuthUserTokenSecret = access_token['oauth_token_secret']
+
+        print("\n===========================")
+        print("To prevent this authorization process next session, " + 
+              "add the following lines to the [twitter] section of " +
+              "your .trackupdaterc:")
+
+        print("OAuthUserToken: " + self.OAuthUserToken)
+        print("OAuthUserTokenSecret: " + self.OAuthUserTokenSecret)
+        print("===========================\n")
+
