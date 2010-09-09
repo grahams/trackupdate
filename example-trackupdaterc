@@ -30,3 +30,8 @@ OAuthConsumerSecret: <key>
 #OAuthUserToken: <key>
 #OAuthUserTokenSecret: <key>
 
+[wordpress]
+username: foouser
+password: pencil
+xmlrpc: http://your.blog.com/xmlrpc.php
+blogId: 0
