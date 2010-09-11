@@ -27,8 +27,30 @@ class NicecastTarget(Target):
     nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')
     pluginName = "Nicecast Track Updater"
 
+    initTitle = ""
+    initArtist = ""
+    initAlbum = ""
+    initTime = ""
+
     def __init__(self, config, episode):
-        return
+        try:
+            self.initTitle = config.get('nicecast', 'initTitle')
+            self.initArtist = config.get('nicecast', 'initArtist')
+            self.initAlbum = config.get('nicecast', 'initAlbum')
+            self.initTime = config.get('nicecast', 'initTime')
+        except ConfigParser.NoSectionError:
+            print("NicecastTarget: No [nicecast] section in config")
+            return
+        except ConfigParser.NoOptionError:
+            print("NicecastTarget: Missing values in config")
+            return
+
+        fh = open(self.nowPlayingFilePath, 'w')
+        fh.write("Title: " + self.initTitle + '\n')
+        fh.write("Artist: " + self.initArtist + '\n')
+        fh.write("Album: " + self.initAlbum + '\n')
+        fh.write("Time: " + self.initTime + '\n')
+        fh.close()
 
     def close(self):
         os.remove(self.nowPlayingFilePath)

@@ -24,8 +24,8 @@ import os
 import time
 import sys
 import getopt
-import ConfigParser;
-import glob;
+import ConfigParser
+import glob
 
 from appscript import *
 
@@ -100,7 +100,7 @@ Example:
 
         except KeyboardInterrupt,SystemExit:
             for plugin in pluginList:
-                pluginList[plugin].close();
+                pluginList[plugin].close()
 
 
     def processCurrentTrack(self, currentTrack):

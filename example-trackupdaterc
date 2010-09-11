@@ -2,6 +2,14 @@
 # You can blacklist an album name (to omit it from the listings)
 ignoreAlbum: Radio Programme
 
+# these are some initial values to insert into the NowPlaying.txt file.
+# Will be overridden by the first (non-ignoreAlbum'ed) track you play
+[nicecast]
+initTitle: Show will begin shortly
+initArtist: grahams
+initAlbum: grahams' completely normal radio programme
+initTime: 9:99
+
 [wiki]
 # The directory in which to save the wiki text file.  
 wikiTextDirectory: ~/aatemp/
@@ -35,3 +43,11 @@ username: foouser
 password: pencil
 xmlrpc: http://your.blog.com/xmlrpc.php
 blogId: 0
+
+[id3]
+# where you have Nicecast configured to store it's archives
+filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
+
+# these values will be put into the mp3's id3v2 tag
+artistName: grahams
+albumName: grahams' completely normal radio programme
