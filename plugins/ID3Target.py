@@ -32,9 +32,9 @@ class ID3Target(Target):
     pluginName = "ID3 Tag Writer"
     daySuffix = "th"
 
-    self.filePath = ""
-    self.albumName = ""
-    self.artistName = ""
+    filePath = ""
+    albumName = ""
+    artistName = ""
     
     def __init__(self, config, episode):
         self.today = now()
@@ -99,5 +99,4 @@ class ID3Target(Target):
         id3v2.save()
 
     def logTrack(self, title, artist, album, time):
-        print( artist + " - " + title )
         return
