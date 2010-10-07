@@ -24,7 +24,13 @@ import os
 import sys
 import glob
 
-import id3 # http://github.com/myers/pyid3
+# http://code.google.com/p/mutagen/
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3NoHeaderError
+from mutagen.id3 import ID3, TIT2, TPE1, TALB, TYER, USLT
+
+TEXT_ENCODING = 'utf8'
+SET_OTHER_ID3_TAGS = False
 
 from mx.DateTime import * # http://pypi.python.org/pypi/egenix-mx-base/3.1.2
 
@@ -35,6 +41,7 @@ class ID3Target(Target):
     filePath = ""
     albumName = ""
     artistName = ""
+    lyricText = ""
     
     def __init__(self, config, episode):
         self.today = now()
@@ -82,21 +89,14 @@ class ID3Target(Target):
             return
 
         # assumes that there is only one archive file for the day
-        id3v2 = id3.ID3v2( files[0] )
-
-        f = id3v2.new_frame('TIT2')
-        f.value = titleDate
-
-        f = id3v2.new_frame('TPE1')
-        f.value = self.artistName
-        
-        f = id3v2.new_frame('TALB')
-        f.value = self.albumName
-
-        f = id3v2.new_frame('TYER')
-        f.value = year
-
-        id3v2.save()
+        audio = MP3( files[0] )
+        audio["TIT2"] = TIT2(encoding=3, text=titleDate)
+        audio["TPE1"] = TPE1(encoding=3, text=self.artistName)
+        audio["TALB"] = TALB(encoding=3, text=self.albumName)
+        audio["TYER"] = TYER(encoding=3, text=year)
+        audio["USLT"] = USLT(encoding=3, text=self.lyricText)
+        audio.save()
 
     def logTrack(self, title, artist, album, time):
+        self.lyricText += artist + " - " + title + "\n"
         return

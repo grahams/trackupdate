@@ -1,4 +1,4 @@
-#!/opt/local/bin/python
+#!/usr/bin/python
 
 # Copyright (c) 2009-2010 Sean M. Graham <www.sean-graham.com>
 # 
