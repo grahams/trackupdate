@@ -23,21 +23,34 @@ from Target import Target
 import os
 from datetime import date
 
+# http://code.google.com/p/python-wikitools/
+from wikitools import wiki
+from wikitools import api
+from wikitools import Page
+from wikitools import pagelist
+
 class WikiTarget(Target):
-    wfh = None
     pluginName = "Wiki Text Generator"
     createWikiText = False
-    wikiFilePath = ""
-    wikiArchiveURL = ""
     episodeNumber = "XX"
+    text = ""
+
+    # config values
+    wikiApiURL = ""
+    wikiUsername = ""
+    wikiPassword = ""
+    wikiPageName = ""
+    wikiArchiveURL = ""
 
     def __init__(self, config, episode):
         self.episodeNumber = episode
 
         try:
-            self.wikiFilePath = config.get('wiki', 'wikiTextDirectory')
+            self.wikiApiURL = config.get('wiki', 'wikiApiURL')
+            self.wikiUsername = config.get('wiki', 'wikiUsername')
+            self.wikiPassword = config.get('wiki', 'wikiPassword')
+            self.wikiPageName = config.get('wiki', 'wikiPageName')
             self.wikiArchiveURL = config.get('wiki', 'wikiArchiveURL')
-            self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
         except ConfigParser.NoSectionError:
             print("NoSectionError")
             return
@@ -45,40 +58,33 @@ class WikiTarget(Target):
             print("NoOptionError")
             return
 
-        if(self.wikiFilePath != ""):
-            self.createWikiText = True
-            self.initWikiFile()
+        self.createWikiText = True
+        self.initWikiFile()
 
     def close(self):
         if( self.createWikiText == True ):
-            self.wfh.write("|}\n")
-            self.wfh.close()
+            self.text += "|}"
+
+            site = wiki.Wiki(self.wikiApiURL)
+            site.login(self.wikiUsername, self.wikiPassword)
+            page = Page(site, title=self.wikiPageName)
+            page.edit(appendtext=self.text)
+
         
     def logTrack(self, title, artist, album, time):
         if( self.createWikiText == True ):
-            self.wfh.write("|" + title + '\n')
-            self.wfh.write("|" + artist + '\n')
-            self.wfh.write("|" + album + '\n')
-            self.wfh.write("|-\n")
+            self.text += "|" + title + '\n'
+            self.text += "|" + artist + '\n'
+            self.text += "|" + album + '\n'
+            self.text += "|-\n"
 
     def initWikiFile(self):
-        dateString = date.today().strftime("%Y%m%d")
-
-        filename = os.path.expanduser(self.wikiFilePath + dateString + 
-                                      "-wikitext.txt")
-
-        # if the file already exists, delete it
-        if(os.access(filename, os.F_OK)):
-            os.unlink(filename)
-
-        self.wfh = open(filename, 'a')
-
-        self.wfh.write("=== ")
+        self.text += "\n\n=== "
 
         if(self.wikiArchiveURL != ""):
-            self.wfh.write("[" + date.today().strftime(self.wikiArchiveURL) + " ")
+            self.text += "[" + date.today().strftime(self.wikiArchiveURL) + " "
 
-        self.wfh.write("Show #" + self.episodeNumber + " - ")
+        self.text += "Show #" + self.episodeNumber + " - "
 
         # compute the suffix
         day = date.today().day
@@ -87,18 +93,18 @@ class WikiTarget(Target):
         else:
             suffix = ["st", "nd", "rd"][day % 10 - 1]
 
-        self.wfh.write(date.today().strftime("%A, %B %d"))
-        self.wfh.write(suffix)
-        self.wfh.write(date.today().strftime(", %Y"))
+        self.text += date.today().strftime("%A, %B %d")
+        self.text += suffix
+        self.text += date.today().strftime(", %Y")
 
         if(self.wikiArchiveURL != ""):
-            self.wfh.write("]")
+            self.text += "]"
 
-        self.wfh.write(" ===\n")
+        self.text += " ===\n"
 
-        self.wfh.write("{| border=1 cellspacing=0 cellpadding=5\n")
-        self.wfh.write("|'''Song'''\n")
-        self.wfh.write("|'''Artist'''\n")
-        self.wfh.write("|'''Album'''\n")
-        self.wfh.write("|-\n")
+        self.text += "{| border=1 cellspacing=0 cellpadding=5\n"
+        self.text += "|'''Song'''\n"
+        self.text += "|'''Artist'''\n"
+        self.text += "|'''Album'''\n"
+        self.text += "|-\n"
 
