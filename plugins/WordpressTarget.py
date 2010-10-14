@@ -84,6 +84,8 @@ class WordpressTarget(Target):
         self.page.tbody.open()
 
     def close(self):
+        print("Posting to Wordpress")
+
         self.page.tbody.close()
         self.page.table.close()
 

@@ -81,6 +81,8 @@ class ID3Target(Target):
         fileDate = self.today.strftime("%Y%m%d")
         year = self.today.strftime("%Y")
 
+        print("Processing ID3 tag...")
+
         files = glob.glob(self.filePath + 
                           "Nicecast Archived Audio " + 
                           fileDate + "*.mp3")

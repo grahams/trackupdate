@@ -142,7 +142,10 @@ Example:
                 return
 
             for plugin in pluginList:
-                pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
+                try:
+                    pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
+                except:
+                    print(plugin + ": Error Trying to update track")
 
 
     def loadPlugins(self, config, episode):

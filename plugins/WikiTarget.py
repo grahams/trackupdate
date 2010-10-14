@@ -65,6 +65,8 @@ class WikiTarget(Target):
         if( self.createWikiText == True ):
             self.text += "|}"
 
+            print("Posting to Wiki...")
+
             site = wiki.Wiki(self.wikiApiURL)
             site.login(self.wikiUsername, self.wikiPassword)
             page = Page(site, title=self.wikiPageName)

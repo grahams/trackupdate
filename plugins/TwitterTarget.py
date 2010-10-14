@@ -100,6 +100,7 @@ class TwitterTarget(Target):
         if( importSuccessful == True ):
             if( self.api != None ):
                 if(self.closeTweet != None):
+                    print("Posting farewell to Twitter...")
                     self.api.UpdateStatus(self.closeTweet)
                 return
 
