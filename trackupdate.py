@@ -100,8 +100,10 @@ Example:
 
         except KeyboardInterrupt,SystemExit:
             for plugin in pluginList:
-                pluginList[plugin].close()
-
+                try:
+                    pluginList[plugin].close()
+                except:
+                    print(plugin + ": Error trying to close target")
 
     def processCurrentTrack(self, currentTrack):
         iArtist = currentTrack.artist.get()
@@ -145,7 +147,7 @@ Example:
                 try:
                     pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
                 except:
-                    print(plugin + ": Error Trying to update track")
+                    print(plugin + ": Error trying to update track")
 
 
     def loadPlugins(self, config, episode):
