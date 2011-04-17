@@ -1,0 +1,6 @@
+Known problems with the MakeM4B:
+
+Automatic generation of m4b files works perfectly as long as cover art is not included.
+
+For some reason, when an m4b file is being made using an xml that specifies cover art, ChapterTool claims it can not find the artwork. If you use the exact same command as in the python in the command line, it works.
+
