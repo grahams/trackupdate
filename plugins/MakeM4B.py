@@ -37,13 +37,15 @@ import string
 
 from appscript import *
 
+from subprocess import *
+
 class MakeM4B(Target):
     theFileName = ""
     pluginName = "Enhanced Podcast Maker"
     m4bFolderPath = ""
     mp3FilePath = ""
     chapterToolPath = ""
-    withArtwork = True
+    withArtwork = "True"
     runTime = ""
     startTime = -1
 
@@ -84,19 +86,24 @@ class MakeM4B(Target):
         self.mp3FilePath=os.path.expanduser(self.mp3FilePath)
         theMP3File = glob.glob(self.mp3FilePath+"Nicecast Archived Audio "+fileDate+"*.mp3")
         if(len(theMP3File) > 0):
-		    theMP3File=theMP3File[-1]
-		    theMP3FileName=os.path.split(theMP3File)[1]
-		    theAudioBaseName=os.path.splitext(theMP3FileName)[0]
-		    print("Making a copy of the archive as an m4a...")
-		    theCommand="afconvert -f 'mp4f' -d 'aac ' '%s' '%s/%s.m4a'" % (theMP3File, self.m4bFolderPath, theAudioBaseName)
-		    os.system(theCommand)
-		    if(os.path.isfile(""+self.m4bFolderPath+"/"+theAudioBaseName+".m4a")):
-			    xmlFilePath=self.m4bFolderPath+"/"+self.theFileName
-			    inAudioFilePath=self.m4bFolderPath+"/"+theAudioBaseName+".m4a"
-			    outAudioFilePath=self.m4bFolderPath+"/"+theAudioBaseName+".m4b"
-			    theCommand="'%s' -x '%s' -a '%s' -o '%s'" % (self.chapterToolPath, xmlFilePath, inAudioFilePath, outAudioFilePath)
-			    os.system(theCommand)
-				
+            theMP3File=theMP3File[-1]
+            theMP3FileName=os.path.split(theMP3File)[1]
+            theAudioBaseName=os.path.splitext(theMP3FileName)[0]
+            print("Making a copy of the archive as an m4a...")
+            theCommand="afconvert -f 'mp4f' -d 'aac ' '%s' '%s/%s.m4a'" % (theMP3File, self.m4bFolderPath, theAudioBaseName)
+            os.system(theCommand)
+            if(os.path.isfile(""+self.m4bFolderPath+"/"+theAudioBaseName+".m4a")):
+                xmlFilePath=self.m4bFolderPath+"/"+self.theFileName
+                inAudioFilePath=self.m4bFolderPath+"/"+theAudioBaseName+".m4a"
+                outAudioFilePath=self.m4bFolderPath+"/"+theAudioBaseName+".m4b"
+                currWorkDir=os.getcwd()
+                os.chdir(self.m4bFolderPath)
+                theCommand="'%s' -x '%s' -a '%s' -o '%s'" % (self.chapterToolPath, xmlFilePath, inAudioFilePath, outAudioFilePath)
+                os.system(theCommand)
+                os.chdir(currWorkDir)
+                
+
+
     def logTrack(self, ititle, iartist, ialbum, itime, iart, theStartTime):
         if(theStartTime>0):
             if(self.startTime==-1):self.startTime=theStartTime
@@ -115,7 +122,7 @@ class MakeM4B(Target):
             fh = open(self.m4bFolderPath+"/"+self.theFileName, 'a')
             fh.write("<chapter starttime='"+runTime+"'>\n")
             fh.write("<title>"+iartist+" : "+ititle+" : "+ialbum+"</title>\n")
-            if(self.withArtwork==True and not iart==[]):
+            if(self.withArtwork=="True" and not iart==[]):
                 runTimeA=string.replace(str(runTimeA), '.', '')
                 theArtString="<picture>art/%s.%s</picture>\n" % (runTimeA, theArtFormat)
                 fh.write(theArtString)
@@ -126,7 +133,7 @@ class MakeM4B(Target):
             fh.close()
             
             #write the artwork to disc
-            if(self.withArtwork==True and not iart==[]):
+            if(self.withArtwork=="True" and not iart==[]):
                 if not os.path.exists(self.m4bFolderPath+"/art"):os.mkdir(self.m4bFolderPath+"/art")
                 theArtPath="%s/art/%s.%s" % (self.m4bFolderPath, runTimeA, theArtFormat)
                 fa = open(theArtPath, 'wb')
