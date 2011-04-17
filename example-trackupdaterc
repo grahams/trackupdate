@@ -53,3 +53,10 @@ filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
 # these values will be put into the mp3's id3v2 tag
 artistName: grahams
 albumName: grahams' completely normal radio programme
+
+[m4b]
+# where you want the advanced podcast temp files to be make
+m4bFolder: ~/Desktop/AdvancedPodcast
+mp3FilePath: ~/Music/Nicecast Broadcast Archive/
+chapterToolPath: /Applications/GarageBand.app/Contents/MacOS/ChapterTool
+includeArt: True
