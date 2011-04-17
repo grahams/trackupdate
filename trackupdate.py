@@ -38,15 +38,20 @@ class TrackUpdate:
     trackAlbum = ""
     trackTime = ""
     episodeNumber = "XX"
+    pollTime = 10
+    startTime = -1
+    askToLoad = False
 
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
         print( """
-This is a simple script which polls iTunes every 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
+This is a simple script which polls iTunes every (default) 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
 
 Arguments:
-    -e  --episode   the episode number (optional, used by some plugins)
-    -h  --help      show this help page
+    -e  --episode     the episode number (optional, used by some plugins)
+    -t  --polltime    the time to wait between polling iTunes
+    -i  --interactive ask the user whether to load given plugins
+    -h  --help        show this help page
 
 Example:
     ./trackupdate.py -e 42
@@ -54,7 +59,7 @@ Example:
 
     def __init__(self,argv):
         config = None
-
+        print("***Starting up. Press Cntrl-C to stop...")
         # process config file
         try:
             config = ConfigParser.ConfigParser()
@@ -70,8 +75,8 @@ Example:
         # process command-line arguments
         if(len(argv) > 0):
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "h:e:", ["help",
-                                                                   "episode="])
+                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:i", ["help",
+                                                                   "episode=", "polltime=", "interactive"])
             except getopt.GetoptError, err:
                 # print help information and exit:
                 print str(err) # will print something like "option -a not recognized"
@@ -81,6 +86,12 @@ Example:
             for o, a in opts:
                 if o in ("-e", "--episode"):
                     self.episodeNumber = a
+                elif o in ("-t", "--polltime"):
+                    a = int(a)
+                    if a >= 0: a = 1
+                    self.pollTime = a
+                elif o in ("-i", "--interactive"):
+                    self.askToLoad = True
                 elif o in ("-h", "--help"):
                     self.usage()
                     sys.exit()
@@ -88,17 +99,23 @@ Example:
                     assert False, "unhandled option"
 
         self.loadPlugins(config, self.episodeNumber)
+        print("   ***Episode #: %s")%(str(self.episodeNumber))
+        print("   ***Time between polling: %i\n")%(self.pollTime)
+
 
         try:
             iTunes = app('iTunes')
-
+            theNC = app('Nicecast')
+            theNC.start_archiving() #Make sure nicecast is actually archiving things
             while(1):
-                if(iTunes.player_state() == k.playing):
-                    self.processCurrentTrack(iTunes.current_track)
+                if (theNC.archiving()) and (theNC.broadcasting()) and (self.startTime==-1): 
+                    self.startTime=time.time()		
+                if (iTunes.player_state() == k.playing): self.processCurrentTrack(iTunes.current_track)
 
-                time.sleep(10.0)
+                time.sleep(self.pollTime)
 
         except KeyboardInterrupt,SystemExit:
+            print("\n***Exiting...")
             for plugin in pluginList:
                 try:
                     pluginList[plugin].close()
@@ -110,6 +127,16 @@ Example:
         iName = currentTrack.name.get()
         iAlbum = currentTrack.album.get()
         iTime = currentTrack.time.get()
+        if(not currentTrack.artworks.get()==[]):
+            theFormat = currentTrack.artworks[1].format.get()
+            if(theFormat==k.JPEG_picture): theFormat='jpg'
+            if(theFormat==k.PNG_picture): theFormat='png'
+            if(theFormat==k.GIF_picture): theFormat='gif'
+            #remove the first 221 bytes to strip off the stupid pict header
+            iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
+        else:
+            iArt = []
+        
 
         # check for missing values
         if( iArtist != k.missing_value ):
@@ -142,35 +169,49 @@ Example:
             # if the album name matches the blacklist name don't do anything
             if( self.trackAlbum == self.ignoreAlbum ):
                 return
-
+				
             for plugin in pluginList:
                 try:
+                    pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime, iArt, self.startTime)
+                except TypeError:
                     pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
                 except:
                     print(plugin + ": Error trying to update track")
 
 
     def loadPlugins(self, config, episode):
+        print("***Loading plugins...")
         scriptPath = "."
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
 
+        
         for x in pluginNames:
             pathName = x.replace(".py","")
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
+            
+            if(self.askToLoad == False):
+                theChoice = 'y'
+            else:
+                sys.stdout.write("Load plugin '"+className+"'? [Y/n]")
+                theChoice = raw_input().lower()
+            if (not theChoice=='y'):
+                print("   Skipping plugin '%s'.")%(className)
+            else:
+                print("   Loading plugin '%s'....")%(className)
 
-            # import the module
-            mod = __import__(className, globals(), locals(), [''])
+                # import the module
+                mod = __import__(className, globals(), locals(), [''])
 
-            # find the symbol for the class
-            cls  = getattr(mod,className)
+                # find the symbol for the class
+                cls  = getattr(mod,className)
 
-            # initialize the plugin
-            o = cls(config,episode)
+                # initialize the plugin
+                o = cls(config,episode)
 
-            # add the plugin to the list
-            pluginList[ o.pluginName ] = o
+                # add the plugin to the list
+                pluginList[ o.pluginName ] = o
 
 if __name__ == "__main__":
     trackUpdate = TrackUpdate(sys.argv[1:])
