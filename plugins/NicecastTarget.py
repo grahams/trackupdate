@@ -34,12 +34,12 @@ class NicecastTarget(Target):
 
     def __init__(self, config, episode):
         try:
-            self.initTitle = config.get('nicecast', 'initTitle')
-            self.initArtist = config.get('nicecast', 'initArtist')
-            self.initAlbum = config.get('nicecast', 'initAlbum')
-            self.initTime = config.get('nicecast', 'initTime')
+            self.initTitle = config.get('NicecastTarget', 'initTitle')
+            self.initArtist = config.get('NicecastTarget', 'initArtist')
+            self.initAlbum = config.get('NicecastTarget', 'initAlbum')
+            self.initTime = config.get('NicecastTarget', 'initTime')
         except ConfigParser.NoSectionError:
-            print("NicecastTarget: No [nicecast] section in config")
+            print("NicecastTarget: No [NicecastTarget] section in config")
             return
         except ConfigParser.NoOptionError:
             print("NicecastTarget: Missing values in config")

@@ -35,10 +35,10 @@ class WordpressTarget(Target):
 
     def __init__(self, config, episode):
         # pull config values
-        self.username = config.get('wordpress', 'username')
-        self.password = config.get('wordpress', 'password')
-        self.xmlrpc = config.get('wordpress', 'xmlrpc')
-        self.blogId = config.get('wordpress', 'blogId')
+        self.username = config.get('WordpressTarget', 'username')
+        self.password = config.get('WordpressTarget', 'password')
+        self.xmlrpc = config.get('WordpressTarget', 'xmlrpc')
+        self.blogId = config.get('WordpressTarget', 'blogId')
         
         # handle stupid date suffix.  i'm sure there is a better way to do
         # this

@@ -48,11 +48,11 @@ class ID3Target(Target):
 
         # read config entries
         try:
-            self.filePath = config.get('id3', 'filePath')
-            self.albumName = config.get('id3', 'albumName')
-            self.artistName = config.get('id3', 'artistName')
+            self.filePath = config.get('ID3Target', 'filePath')
+            self.albumName = config.get('ID3Target', 'albumName')
+            self.artistName = config.get('ID3Target', 'artistName')
         except ConfigParser.NoSectionError:
-            print("ID3Target: No [id3] section in config")
+            print("ID3Target: No [ID3Target] section in config")
             return
         except ConfigParser.NoOptionError:
             print("ID3Target: Missing values in config")

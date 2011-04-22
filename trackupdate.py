@@ -26,6 +26,7 @@ import sys
 import getopt
 import ConfigParser
 import glob
+import logging
 
 from appscript import *
 
@@ -52,6 +53,7 @@ Arguments:
     -t  --polltime    the time to wait between polling iTunes
     -i  --interactive ask the user whether to load given plugins
     -h  --help        show this help page
+    -v  --verbose     you are lonely and want trackupdate to talk more
 
 Example:
     ./trackupdate.py -e 42
@@ -59,13 +61,14 @@ Example:
 
     def __init__(self,argv):
         config = None
-        print("***Starting up. Press Cntrl-C to stop...")
+        logging.basicConfig(level=logging.WARNING)
+
         # process config file
         try:
             config = ConfigParser.ConfigParser()
             config.read(os.path.expanduser('~/.trackupdaterc'))
         except ConfigParser.MissingSectionHeaderError:
-            print "Warning: Invalid config file, no [trackupdate] section."
+            logging.error("Warning: Invalid config file, no [trackupdate] section.")
 
         try:
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
@@ -75,11 +78,11 @@ Example:
         # process command-line arguments
         if(len(argv) > 0):
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:i", ["help",
-                                                                   "episode=", "polltime=", "interactive"])
+                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:vi", ["help",
+                                                                   "episode=", "polltime=", "interactive", "verbose"])
             except getopt.GetoptError, err:
                 # print help information and exit:
-                print str(err) # will print something like "option -a not recognized"
+                logging.error(str(err)) # will print something like "option -a not recognized"
                 self.usage()
                 sys.exit(2)
 
@@ -90,6 +93,16 @@ Example:
                     a = int(a)
                     if a >= 0: a = 1
                     self.pollTime = a
+                elif o in ("-v", "--verbose"):
+                    # remove any logging handlers created by logging before
+                    # BasicConfig() is called
+                    root = logging.getLogger()
+                    if root.handlers:
+                        for handler in root.handlers:
+                            root.removeHandler(handler)
+
+                    logging.basicConfig(level=logging.DEBUG)
+                    logging.debug("Starting up. Press Ctrl-C to stop.")
                 elif o in ("-i", "--interactive"):
                     self.askToLoad = True
                 elif o in ("-h", "--help"):
@@ -99,8 +112,8 @@ Example:
                     assert False, "unhandled option"
 
         self.loadPlugins(config, self.episodeNumber)
-        print("   ***Episode #: %s")%(str(self.episodeNumber))
-        print("   ***Time between polling: %i\n")%(self.pollTime)
+        logging.debug( "   Episode #: %s" % str(self.episodeNumber) )
+        logging.debug( "   Time between polling: %i\n" % self.pollTime )
 
 
         try:
@@ -115,12 +128,12 @@ Example:
                 time.sleep(self.pollTime)
 
         except KeyboardInterrupt,SystemExit:
-            print("\n***Exiting...")
+            logging.debug("\n***Exiting...")
             for plugin in pluginList:
                 try:
                     pluginList[plugin].close()
                 except:
-                    print(plugin + ": Error trying to close target")
+                    logging.error(plugin + ": Error trying to close target")
 
     def processCurrentTrack(self, currentTrack):
         iArtist = currentTrack.artist.get()
@@ -176,30 +189,38 @@ Example:
                 except TypeError:
                     pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
                 except:
-                    print(plugin + ": Error trying to update track")
+                    logging.error(plugin + ": Error trying to update track")
 
 
     def loadPlugins(self, config, episode):
-        print("***Loading plugins...")
+        logging.debug("Loading plugins...")
         scriptPath = "."
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
-
         
         for x in pluginNames:
             pathName = x.replace(".py","")
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
-            
+            enabled = 'False'
+
+            try:
+                enabled = config.get(className, 'enabled')
+            except ConfigParser.NoSectionError:
+                enabled = 'False'
+            except ConfigParser.NoOptionError:
+                enabled = 'False'
+
             if(self.askToLoad == False):
                 theChoice = 'y'
             else:
                 sys.stdout.write("Load plugin '"+className+"'? [Y/n]")
                 theChoice = raw_input().lower()
-            if (not theChoice=='y'):
-                print("   Skipping plugin '%s'.")%(className)
+
+            if( (enabled =='False') | (not theChoice=='y') ):
+                logging.debug("   Skipping plugin '%s'." % className)
             else:
-                print("   Loading plugin '%s'....")%(className)
+                logging.debug("   Loading plugin '%s'...." % className)
 
                 # import the module
                 mod = __import__(className, globals(), locals(), [''])

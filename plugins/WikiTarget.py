@@ -46,13 +46,13 @@ class WikiTarget(Target):
         self.episodeNumber = episode
 
         try:
-            self.wikiApiURL = config.get('wiki', 'wikiApiURL')
-            self.wikiUsername = config.get('wiki', 'wikiUsername')
-            self.wikiPassword = config.get('wiki', 'wikiPassword')
-            self.wikiPageName = config.get('wiki', 'wikiPageName')
-            self.wikiArchiveURL = config.get('wiki', 'wikiArchiveURL')
+            self.wikiApiURL = config.get('WikiTarget', 'wikiApiURL')
+            self.wikiUsername = config.get('WikiTarget', 'wikiUsername')
+            self.wikiPassword = config.get('WikiTarget', 'wikiPassword')
+            self.wikiPageName = config.get('WikiTarget', 'wikiPageName')
+            self.wikiArchiveURL = config.get('WikiTarget', 'wikiArchiveURL')
         except ConfigParser.NoSectionError:
-            print("NoSectionError")
+            print("WikiTarget: No [WikiTarget] section in config")
             return
         except ConfigParser.NoOptionError:
             print("NoOptionError")

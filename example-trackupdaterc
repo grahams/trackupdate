@@ -4,13 +4,15 @@ ignoreAlbum: Radio Programme
 
 # these are some initial values to insert into the NowPlaying.txt file.
 # Will be overridden by the first (non-ignoreAlbum'ed) track you play
-[nicecast]
+[NicecastTarget]
+enable: True
 initTitle: Show will begin shortly
 initArtist: grahams
 initAlbum: grahams' completely normal radio programme
 initTime: 9:99
 
-[wiki]
+[WikiTarget]
+enable: True
 wikiApiURL: http://wiki.example.com/api.php
 wikiUsername: Vincent
 wikiPassword: pencil
@@ -20,7 +22,7 @@ wikiPageName: The Antonelli Hour
 # It will be processed by strftime, so you can format it
 wikiArchiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20The%%20Antonelli%%20Hour%%20Radio%%20.mp3
 
-[twitter]
+[TwitterTarget]
 initTweet: The show is on!         # Optional: Sent when plugin inits
 closeTweet: Thanks for listening!  # Optional: Sent when plugin closes
 
@@ -40,13 +42,13 @@ OAuthConsumerSecret: <key>
 #OAuthUserToken: <key>
 #OAuthUserTokenSecret: <key>
 
-[wordpress]
+[WordpressTarget]
 username: foouser
 password: pencil
 xmlrpc: http://your.blog.com/xmlrpc.php
 blogId: 0
 
-[id3]
+[ID3Target]
 # where you have Nicecast configured to store it's archives
 filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
 
@@ -54,7 +56,7 @@ filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
 artistName: grahams
 albumName: grahams' completely normal radio programme
 
-[m4b]
+[MakeM4B]
 # where you want the advanced podcast temp files to be make
 m4bFolder: ~/Desktop/AdvancedPodcast
 mp3FilePath: ~/Music/Nicecast Broadcast Archive/

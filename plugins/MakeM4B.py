@@ -52,12 +52,12 @@ class MakeM4B(Target):
 
     def __init__(self, config, episode):
         try:
-            self.m4bFolderPath = config.get('m4b', 'm4bFolder')
-            self.mp3FilePath = config.get('m4b', 'mp3FilePath')
-            self.chapterToolPath = config.get('m4b', 'chapterToolPath')
-            self.withArtwork = config.get('m4b', 'includeArt')
+            self.m4bFolderPath = config.get('MakeM4B', 'm4bFolder')
+            self.mp3FilePath = config.get('MakeM4B', 'mp3FilePath')
+            self.chapterToolPath = config.get('MakeM4B', 'chapterToolPath')
+            self.withArtwork = config.get('MakeM4B', 'includeArt')
         except ConfigParser.NoSectionError:
-            print("%s: No [m4b] section in config") % (self.pluginName)
+            print("%s: No [MakeM4B] section in config") % (self.pluginName)
             return
         except ConfigParser.NoOptionError:
             print("%s: Missing values in config") % (self.pluginName)

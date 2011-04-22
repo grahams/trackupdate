@@ -48,10 +48,10 @@ class TwitterTarget(Target):
     def __init__(self, config, episode):
         if( importSuccessful == True ):
             try:
-                self.OAuthConsumerKey = config.get('twitter', 'OAuthConsumerKey')
-                self.OAuthConsumerSecret = config.get('twitter', 'OAuthConsumerSecret')
+                self.OAuthConsumerKey = config.get('TwitterTarget', 'OAuthConsumerKey')
+                self.OAuthConsumerSecret = config.get('TwitterTarget', 'OAuthConsumerSecret')
             except ConfigParser.NoSectionError:
-                print("TwitterTarget: No [twitter] section in config")
+                print("TwitterTarget: No [TwitterTarget] section in config")
                 return
             except ConfigParser.NoOptionError:
                 print("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
@@ -60,10 +60,10 @@ class TwitterTarget(Target):
             # try to read the OAuth user tokens from the config file,
             # otherwise obtain new tokens.
             try:
-                self.OAuthUserToken = config.get('twitter', 'OAuthUserToken')
-                self.OAuthUserTokenSecret = config.get('twitter', 'OAuthUserTokenSecret')
+                self.OAuthUserToken = config.get('TwitterTarget', 'OAuthUserToken')
+                self.OAuthUserTokenSecret = config.get('TwitterTarget', 'OAuthUserTokenSecret')
             except ConfigParser.NoSectionError:
-                print("TwitterTarget: No [twitter] section in config")
+                print("TwitterTarget: No [TwitterTarget] section in config")
                 return
             except ConfigParser.NoOptionError:
                 print("TwitterTarget: Need to obtain OAuth Authorization.")
@@ -72,7 +72,7 @@ class TwitterTarget(Target):
             # this is an optional config value containing a tweet to be 
             # sent on init
             try:
-                self.initTweet = config.get('twitter', 'initTweet')
+                self.initTweet = config.get('TwitterTarget', 'initTweet')
             except ConfigParser.NoSectionError:
                 pass
             except ConfigParser.NoOptionError:
@@ -81,7 +81,7 @@ class TwitterTarget(Target):
             # this is an optional config value containing a tweet to be 
             # sent on close
             try:
-                self.closeTweet = config.get('twitter', 'closeTweet')
+                self.closeTweet = config.get('TwitterTarget', 'closeTweet')
             except ConfigParser.NoSectionError:
                 pass
             except ConfigParser.NoOptionError:
