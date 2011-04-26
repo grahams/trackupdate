@@ -21,7 +21,6 @@
 from Target import Target
 
 import os
-from datetime import date
 
 class NicecastTarget(Target):
     nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')

@@ -18,7 +18,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-class Target:
+class Target(object):
     pluginName = "Base Class"
 
     def __init__(self, config, episode):

@@ -32,7 +32,7 @@ from appscript import *
 
 pluginList = { }
 
-class TrackUpdate:
+class TrackUpdate(object):
     ignoreAlbum = ""
     trackArtist = ""
     trackName  = ""
@@ -181,6 +181,7 @@ Example:
 
             # if the album name matches the blacklist name don't do anything
             if( self.trackAlbum == self.ignoreAlbum ):
+                logging.info("Album title on blacklist: " + iArtist + " - " + iName + " - " + iAlbum)
                 return
 				
             for plugin in pluginList:
@@ -194,13 +195,14 @@ Example:
 
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
-        scriptPath = "."
+        # scriptPath = "."
+        scriptPath = os.path.split(__file__)[0]
+
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
         
         for x in pluginNames:
-            pathName = x.replace(".py","")
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
             enabled = 'False'
 
