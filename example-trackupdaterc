@@ -56,9 +56,12 @@ filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
 artistName: grahams
 albumName: grahams' completely normal radio programme
 
-[MakeM4B]
+[XMLTarget]
 # where you want the advanced podcast temp files to be make
 m4bFolder: ~/Desktop/AdvancedPodcast
 mp3FilePath: ~/Music/Nicecast Broadcast Archive/
 chapterToolPath: /Applications/GarageBand.app/Contents/MacOS/ChapterTool
 includeArt: True
+# setting the following value to nothing is the same a saying not to use default art
+defaultArt:  plugins/default_art.png
+
