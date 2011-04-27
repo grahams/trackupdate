@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from Target import Target
-
+import ConfigParser
 import os
 from datetime import date
 
