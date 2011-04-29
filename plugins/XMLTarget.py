@@ -34,6 +34,8 @@ import ConfigParser
 import glob
 import shutil
 import string
+import json
+import urllib2
 
 from appscript import *
 
@@ -47,6 +49,9 @@ class XMLTarget(Target):
     chapterToolPath = ""
     withArtwork = "True"
     defaultArt= ""
+    withLinks = "True"
+    linkUrl = ""
+    queryUrl = ""
     runTime = ""
     startTime = -1
 
@@ -58,6 +63,9 @@ class XMLTarget(Target):
             self.chapterToolPath = config.get('XMLTarget', 'chapterToolPath')
             self.withArtwork = config.get('XMLTarget', 'includeArt')
             self.defaultArtwork = config.get('XMLTarget', 'defaultArt')
+            self.withLinks = config.get('XMLTarget', 'includeLinks')
+            self.linkUrl = config.get('XMLTarget', 'linkUrl')
+            self.queryUrl = config.get('XMLTarget', 'queryUrl')
         except ConfigParser.NoSectionError:
             print("%s: No [MakeM4B] section in config") % (self.pluginName)
             return
@@ -121,10 +129,10 @@ class XMLTarget(Target):
             ititle=string.replace(ititle, '&', 'and')
             iartist=string.replace(iartist, '&', 'and')
             ialbum=string.replace(ialbum, '&', 'and')
-            
             fh = open(self.m4bFolderPath+"/"+self.theFileName, 'a')
             fh.write("<chapter starttime='"+runTime+"'>\n")
             fh.write("<title>"+iartist+" : "+ititle+" : "+ialbum+"</title>\n")
+            ##Include Artwork##
             if(self.withArtwork=="True"):
                 if(not iart==[]):
                     runTimeA=string.replace(str(runTimeA), '.', '')
@@ -135,7 +143,37 @@ class XMLTarget(Target):
                     fh.write("<picture>art/"+defaultArtNm+"</picture>\n")
                 else:
                     fh.write("<picture></picture>\n")
-            #fh.write("<link>"+iprofit+"</link>\n")
+            ##Include Links##
+            ##I'm not 100% happy with this. Feels cludgy
+            if(self.withLinks=="True"):
+                theAlbum=ialbum
+                theUrl=""
+                for i in range(2):
+                    theQuery=self.queryUrl % (iartist, ititle, theAlbum)
+                    #try:
+                    theResponse=urllib2.urlopen(self.linkUrl,theQuery)
+                    theResult = theResponse.read()
+                    theResult = theResult.replace('\n', '')
+                    theResultDict=json.loads(theResult) #this converts the json into a python dict
+                    if theResultDict['resultCount']==1:
+                        theResult=theResultDict['results'][0]
+                        if theResult['artistName']==iartist or theResult['artistName'].lower()==iartist.lower:
+                            if(theResult['trackName']==ititle or theResult['collectionCensoredName']==ititle or theResult['trackName'].lower()==ititle.lower() or theResult['collectionCensoredName'].lower()==ititle.lower()):
+                                if(not theAlbum==""):
+                                    if(theResult['collectionName']==ialbum or theResult['collectionCensoredName']==ialbum) :
+                                        theUrl=theResult['trackViewUrl']
+                                        break
+                                    else:
+                                        theAlbum=""
+                                else:
+                                    theUrl=theResult['trackViewUrl']
+                                    break
+                    else:
+                        theAlbum=""
+                    #except:
+                    #    break
+                fh.write("<link>"+theUrl+"</link>\n")
+    
             fh.write("</chapter>\n")
             fh.close()
             
