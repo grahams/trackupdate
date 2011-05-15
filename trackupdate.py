@@ -142,10 +142,11 @@ Example:
         iAlbum = currentTrack.album.get()
         iTime = currentTrack.time.get()
         if(not currentTrack.artworks.get()==[]):
-            theFormat = currentTrack.artworks[1].format.get()
-            if(theFormat==k.JPEG_picture): theFormat='jpg'
-            if(theFormat==k.PNG_picture): theFormat='png'
-            if(theFormat==k.GIF_picture): theFormat='gif'
+            theFormatAE = currentTrack.artworks[1].format.get()
+            #apparently there is no 'png' format, so set it to 'png' and overwrite as necessary
+            theFormat='png'
+            if(theFormatAE==k.JPEG_picture): theFormat='jpg'
+            if(theFormatAE==k.GIF_picture): theFormat='gif'
             #remove the first 221 bytes to strip off the stupid pict header
             iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
         else:
@@ -218,7 +219,7 @@ Example:
                 sys.stdout.write("Load plugin '"+className+"'? [Y/n]")
                 theChoice = raw_input().lower()
 
-            if( (enabled =='False') | (not theChoice=='y') ):
+            if( (enabled =='False') and (not theChoice=='y') ):
                 logging.debug("   Skipping plugin '%s'." % className)
             else:
                 logging.debug("   Loading plugin '%s'...." % className)
