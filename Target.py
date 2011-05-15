@@ -18,7 +18,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-class Target:
+class Target(object):
     pluginName = "Base Class"
 
     def __init__(self, config, episode):
@@ -27,7 +27,7 @@ class Target:
     def close(self):
         print "If this were a real plugin we would do some destruction here"
 
-    def logTrack(self, title, artist, album, time):
+    def logTrack(self, title, artist, album, time, art, startTime):
         print "If this were a real plugin it would do something profound with this data:"
 
         print "title: " + title

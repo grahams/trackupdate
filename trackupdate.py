@@ -32,7 +32,7 @@ from appscript import *
 
 pluginList = { }
 
-class TrackUpdate:
+class TrackUpdate(object):
     ignoreAlbum = ""
     trackArtist = ""
     trackName  = ""
@@ -68,7 +68,8 @@ Example:
             config = ConfigParser.ConfigParser()
             config.read(os.path.expanduser('~/.trackupdaterc'))
         except ConfigParser.MissingSectionHeaderError:
-            logging.error("Warning: Invalid config file, no [trackupdate] section.")
+            logging.warning("Warning: Invalid config file, no [trackupdate] section.")
+            raise
 
         try:
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
@@ -182,26 +183,26 @@ Example:
 
             # if the album name matches the blacklist name don't do anything
             if( self.trackAlbum == self.ignoreAlbum ):
+                logging.info("Album title on blacklist: " + iArtist + " - " + iName + " - " + iAlbum)
                 return
 				
             for plugin in pluginList:
                 try:
                     pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime, iArt, self.startTime)
-                except TypeError:
-                    pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
                 except:
                     logging.error(plugin + ": Error trying to update track")
 
 
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
-        scriptPath = "."
+        # scriptPath = "."
+        scriptPath = os.path.split(__file__)[0]
+
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
         
         for x in pluginNames:
-            pathName = x.replace(".py","")
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
             enabled = 'False'
 
@@ -218,7 +219,7 @@ Example:
                 sys.stdout.write("Load plugin '"+className+"'? [Y/n]")
                 theChoice = raw_input().lower()
 
-            if( (enabled =='False') and (not theChoice=='y') ):
+            if( (enabled == 'False') or (not theChoice=='y') ):
                 logging.debug("   Skipping plugin '%s'." % className)
             else:
                 logging.debug("   Loading plugin '%s'...." % className)

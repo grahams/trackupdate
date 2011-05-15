@@ -21,7 +21,6 @@
 from Target import Target
 import ConfigParser
 import os
-from datetime import date
 
 class NicecastTarget(Target):
     nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')
@@ -55,7 +54,7 @@ class NicecastTarget(Target):
     def close(self):
         os.remove(self.nowPlayingFilePath)
 
-    def logTrack(self, title, artist, album, time):
+    def logTrack(self, title, artist, album, time, art, startTime):
         fh = open(self.nowPlayingFilePath, 'w')
         fh.write("Title: " + title + '\n')
         fh.write("Artist: " + artist + '\n')

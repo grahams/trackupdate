@@ -104,7 +104,7 @@ class WordpressTarget(Target):
 
         idPost = wp.newPost(post, True)
 
-    def logTrack(self, title, artist, album, time):
+    def logTrack(self, title, artist, album, time, art, startTime):
         self.page.tr.open()
 
         self.page.td.open()
