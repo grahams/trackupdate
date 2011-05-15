@@ -219,7 +219,7 @@ Example:
                 sys.stdout.write("Load plugin '"+className+"'? [Y/n]")
                 theChoice = raw_input().lower()
 
-            if( (enabled =='False') and (not theChoice=='y') ):
+            if( (enabled == 'False') or (not theChoice=='y') ):
                 logging.debug("   Skipping plugin '%s'." % className)
             else:
                 logging.debug("   Loading plugin '%s'...." % className)
