@@ -68,7 +68,8 @@ Example:
             config = ConfigParser.ConfigParser()
             config.read(os.path.expanduser('~/.trackupdaterc'))
         except ConfigParser.MissingSectionHeaderError:
-            logging.error("Warning: Invalid config file, no [trackupdate] section.")
+            logging.warning("Warning: Invalid config file, no [trackupdate] section.")
+            raise
 
         try:
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
@@ -187,8 +188,6 @@ Example:
             for plugin in pluginList:
                 try:
                     pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime, iArt, self.startTime)
-                except TypeError:
-                    pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime)
                 except:
                     logging.error(plugin + ": Error trying to update track")
 

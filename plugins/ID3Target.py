@@ -99,6 +99,6 @@ class ID3Target(Target):
         audio["USLT"] = USLT(encoding=3, text=self.lyricText)
         audio.save()
 
-    def logTrack(self, title, artist, album, time):
+    def logTrack(self, title, artist, album, time, art, startTime):
         self.lyricText += artist + " - " + title + "\n"
         return

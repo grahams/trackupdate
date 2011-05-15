@@ -104,7 +104,7 @@ class TwitterTarget(Target):
                     self.api.UpdateStatus(self.closeTweet)
                 return
 
-    def logTrack(self, title, artist, album, time):
+    def logTrack(self, title, artist, album, time, art, startTime):
         if( importSuccessful == True ):
             if( self.api != None ):
                 tweet = artist + " - " + title
