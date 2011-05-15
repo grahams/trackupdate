@@ -90,29 +90,15 @@ class XMLTarget(Target):
         fh.write("</chapters>")
         fh.close()
         
-        #***THE FOLLOWING SHOULD BE SPLIT OFF INTO ITS OWN SCRIPT***#
-        #convert the archived file made by Nicecast into m4a
-        #fileDate = time.localtime(self.startTime)
-        #fileDate = time.strftime("%Y%m%d",fileDate)
-        #self.mp3FilePath=os.path.expanduser(self.mp3FilePath)
-        #theMP3File = glob.glob(self.mp3FilePath+"Nicecast Archived Audio "+fileDate+"*.mp3")
-        #if(len(theMP3File) > 0):
-        #    theMP3File=theMP3File[-1]
-        #    theMP3FileName=os.path.split(theMP3File)[1]
-        #    theAudioBaseName=os.path.splitext(theMP3FileName)[0]
-        #    print("Making a copy of the archive as an m4a...")
-        #    theCommand="afconvert -f 'mp4f' -d 'aac ' '%s' '%s/%s.m4a'" % (theMP3File, self.m4bFolderPath, theAudioBaseName)
-        #    os.system(theCommand)
-        #    if(os.path.isfile(""+self.m4bFolderPath+"/"+theAudioBaseName+".m4a")):
-        #        xmlFilePath=self.m4bFolderPath+"/"+self.theFileName
-        #        inAudioFilePath=self.m4bFolderPath+"/"+theAudioBaseName+".m4a"
-        #        outAudioFilePath=self.m4bFolderPath+"/"+theAudioBaseName+".m4b"
-        #        currWorkDir=os.getcwd()
-        #        os.chdir(self.m4bFolderPath)
-        #        theCommand="'%s' -x '%s' -a '%s' -o '%s'" % (self.chapterToolPath, xmlFilePath, inAudioFilePath, outAudioFilePath)
-        #        os.system(theCommand)
-        #        os.chdir(currWorkDir)
-                
+        #make a symlink from the folder with xml to the mp3 to use
+        fileDate = time.localtime(self.startTime)
+        fileDate = time.strftime("%Y%m%d",fileDate)
+        self.mp3FilePath=os.path.expanduser(self.mp3FilePath)
+        theMP3File = glob.glob(self.mp3FilePath+"Nicecast Archived Audio "+fileDate+"*.mp3")
+        if(len(theMP3File) > 0):
+            theMP3File=theMP3File[-1]
+            theCommand="ln -s \"%s\" \"%s/target_mp3.mp3\"" % (theMP3File,self.m4bFolderPath)
+            os.system(theCommand)
 
 
     def logTrack(self, ititle, iartist, ialbum, itime, iart, theStartTime):
@@ -124,7 +110,6 @@ class XMLTarget(Target):
             if(not iart==[]): #iart will be an empty list if there is no art
                 theArt=iart[0]
                 theArtFormat=iart[1]
-                    
             #remove '&' characters
             ititle=string.replace(ititle, '&', 'and')
             iartist=string.replace(iartist, '&', 'and')
@@ -145,6 +130,7 @@ class XMLTarget(Target):
                     fh.write("<picture></picture>\n")
             ##Include Links##
             ##I'm not 100% happy with this. Feels cludgy
+            ##This can also result in lag if unable to get a reply from network
             if(self.withLinks=="True"):
                 theAlbum=ialbum
                 theUrl=""
