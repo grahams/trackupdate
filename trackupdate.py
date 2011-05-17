@@ -73,6 +73,7 @@ Example:
 
         try:
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
+            self.pollTime = config.get('trackupdate', 'pollTime')
         except ConfigParser.NoSectionError:
             pass
 
