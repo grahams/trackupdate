@@ -97,8 +97,7 @@ class XMLTarget(Target):
         theMP3File = glob.glob(self.mp3FilePath+"Nicecast Archived Audio "+fileDate+"*.mp3")
         if(len(theMP3File) > 0):
             theMP3File=theMP3File[-1]
-            theCommand="ln -s \"%s\" \"%s/target_mp3.mp3\"" % (theMP3File,self.m4bFolderPath)
-            os.system(theCommand)
+            os.symlink(theMP3File, self.m4bFolderPath+"/target_mp3.mp3")
 
 
     def logTrack(self, ititle, iartist, ialbum, itime, iart, theStartTime):
