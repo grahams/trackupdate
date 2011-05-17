@@ -1,6 +1,7 @@
 [trackupdate]
 # You can blacklist an album name (to omit it from the listings)
 ignoreAlbum: Radio Programme
+pollTime: 10
 
 # these are some initial values to insert into the NowPlaying.txt file.
 # Will be overridden by the first (non-ignoreAlbum'ed) track you play
