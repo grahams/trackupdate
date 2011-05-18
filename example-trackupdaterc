@@ -1,18 +1,22 @@
 [trackupdate]
 # You can blacklist an album name (to omit it from the listings)
 ignoreAlbum: Radio Programme
+pollTime: 10
 
 # these are some initial values to insert into the NowPlaying.txt file.
 # Will be overridden by the first (non-ignoreAlbum'ed) track you play
 [NicecastTarget]
-enable: True
+enabled: True
 initTitle: Show will begin shortly
 initArtist: grahams
 initAlbum: grahams' completely normal radio programme
 initTime: 9:99
 
+[StdioTarget]
+enabled: True
+
 [WikiTarget]
-enable: True
+enabled: True
 wikiApiURL: http://wiki.example.com/api.php
 wikiUsername: Vincent
 wikiPassword: pencil
@@ -23,11 +27,13 @@ wikiPageName: The Antonelli Hour
 wikiArchiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20The%%20Antonelli%%20Hour%%20Radio%%20.mp3
 
 [TwitterTarget]
+enabled: True
 initTweet: The show is on!         # Optional: Sent when plugin inits
 closeTweet: Thanks for listening!  # Optional: Sent when plugin closes
 
 # You need to obtain a Consumer Key/Secret here:
 # https://twitter.com/apps/new
+enabled: True
 OAuthConsumerKey: <key>
 OAuthConsumerSecret: <key>
 
@@ -43,20 +49,24 @@ OAuthConsumerSecret: <key>
 #OAuthUserTokenSecret: <key>
 
 [WordpressTarget]
+enabled: True
 username: foouser
 password: pencil
 xmlrpc: http://your.blog.com/xmlrpc.php
 blogId: 0
 
 [ID3Target]
+enabled: True
 # where you have Nicecast configured to store it's archives
 filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
 
 # these values will be put into the mp3's id3v2 tag
+enabled: True
 artistName: grahams
 albumName: grahams' completely normal radio programme
 
 [XMLTarget]
+enabled: True
 # where you want the advanced podcast temp files to be make
 m4bFolder: ~/Desktop/AdvancedPodcast
 mp3FilePath: ~/Music/Nicecast Broadcast Archive/

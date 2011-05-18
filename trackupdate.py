@@ -73,6 +73,7 @@ Example:
 
         try:
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
+            self.pollTime = config.get('trackupdate', 'pollTime')
         except ConfigParser.NoSectionError:
             pass
 
@@ -122,7 +123,7 @@ Example:
             theNC = app('Nicecast')
             theNC.start_archiving() #Make sure nicecast is actually archiving things
             while(1):
-                if (theNC.archiving()) and (theNC.broadcasting()) and (self.startTime==-1): 
+                if ((iTunes.player_state() == k.playing) and (theNC.archiving()) and (theNC.broadcasting()) and (self.startTime==-1) and (not iTunes.current_track.album.get()==self.ignoreAlbum)): 
                     self.startTime=time.time()		
                 if (iTunes.player_state() == k.playing): self.processCurrentTrack(iTunes.current_track)
 
@@ -152,7 +153,6 @@ Example:
         else:
             iArt = []
         
-
         # check for missing values
         if( iArtist != k.missing_value ):
             iArtist = iArtist.encode("utf-8")
@@ -195,9 +195,10 @@ Example:
 
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
-        # scriptPath = "."
-        scriptPath = os.path.split(__file__)[0]
-
+        scriptPath = "."
+        #***this doesn't work for me. STH 11.05.15***
+        #***using os.path.split(__file__)[0] returns "" on my machine, and no plugins are loaded. It can't find the plugin folder at all
+        #scriptPath = os.path.split(__file__)[0]
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
@@ -206,6 +207,7 @@ Example:
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
             enabled = 'False'
 
+            #if the .rc doesn't define whether it is enabled, defaults to False
             try:
                 enabled = config.get(className, 'enabled')
             except ConfigParser.NoSectionError:
@@ -219,7 +221,9 @@ Example:
                 sys.stdout.write("Load plugin '"+className+"'? [Y/n]")
                 theChoice = raw_input().lower()
 
-            if( (enabled == 'False') or (not theChoice=='y') ):
+            #interactive loading overrides config
+            if( (self.askToLoad==True and theChoice=='n') or (self.askToLoad==False and enabled=='False') ):
+                #if( (enabled == 'False') or (not theChoice=='y') ):
                 logging.debug("   Skipping plugin '%s'." % className)
             else:
                 logging.debug("   Loading plugin '%s'...." % className)
