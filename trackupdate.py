@@ -41,7 +41,6 @@ class TrackUpdate(object):
     episodeNumber = "XX"
     pollTime = 10
     startTime = -1
-    askToLoad = False
 
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
@@ -51,7 +50,6 @@ This is a simple script which polls iTunes every (default) 10 seconds and writes
 Arguments:
     -e  --episode     the episode number (optional, used by some plugins)
     -t  --polltime    the time to wait between polling iTunes
-    -i  --interactive ask the user whether to load given plugins
     -h  --help        show this help page
     -v  --verbose     you are lonely and want trackupdate to talk more
 
@@ -60,6 +58,7 @@ Example:
     """)
 
     def __init__(self,argv):
+        
         config = None
         logging.basicConfig(level=logging.WARNING)
 
@@ -73,15 +72,15 @@ Example:
 
         try:
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
-            self.pollTime = config.get('trackupdate', 'pollTime')
+            self.pollTime = int(config.get('trackupdate', 'pollTime'))
         except ConfigParser.NoSectionError:
             pass
 
         # process command-line arguments
         if(len(argv) > 0):
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:vi", ["help",
-                                                                   "episode=", "polltime=", "interactive", "verbose"])
+                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:v", ["help",
+                                                                   "episode=", "polltime=", "verbose"])
             except getopt.GetoptError, err:
                 # print help information and exit:
                 logging.error(str(err)) # will print something like "option -a not recognized"
@@ -105,8 +104,6 @@ Example:
 
                     logging.basicConfig(level=logging.DEBUG)
                     logging.debug("Starting up. Press Ctrl-C to stop.")
-                elif o in ("-i", "--interactive"):
-                    self.askToLoad = True
                 elif o in ("-h", "--help"):
                     self.usage()
                     sys.exit()
@@ -121,7 +118,11 @@ Example:
         try:
             iTunes = app('iTunes')
             theNC = app('Nicecast')
-            theNC.start_archiving() #Make sure nicecast is actually archiving things
+            theNC.start_archiving() #Force nicecast to start archiving things
+            #maybe there is an applescript way to ask nicecast for the path to the archive vs defining it in the rc?
+            #looks like nicecast stores its pref file at ~/Library/Preferences/com.rogueamoeba.Nicecast.plist
+            #since the user can't force nicecast to store its pref file in a custom location, one could pull the archive dir from the plist
+            #http://docs.python.org/library/plistlib.html
             while(1):
                 if ((iTunes.player_state() == k.playing) and (theNC.archiving()) and (theNC.broadcasting()) and (self.startTime==-1) and (not iTunes.current_track.album.get()==self.ignoreAlbum)): 
                     self.startTime=time.time()		
@@ -215,15 +216,7 @@ Example:
             except ConfigParser.NoOptionError:
                 enabled = 'False'
 
-            if(self.askToLoad == False):
-                theChoice = 'y'
-            else:
-                sys.stdout.write("Load plugin '"+className+"'? [Y/n]")
-                theChoice = raw_input().lower()
-
-            #interactive loading overrides config
-            if( (self.askToLoad==True and theChoice=='n') or (self.askToLoad==False and enabled=='False') ):
-                #if( (enabled == 'False') or (not theChoice=='y') ):
+            if(enabled=='False'):
                 logging.debug("   Skipping plugin '%s'." % className)
             else:
                 logging.debug("   Loading plugin '%s'...." % className)
