@@ -146,11 +146,21 @@ Example:
         if(not currentTrack.artworks.get()==[]):
             theFormatAE = currentTrack.artworks[1].format.get()
             #apparently there is no 'png' format, so set it to 'png' and overwrite as necessary
+            #added more formats to try and catch any weird ones
             theFormat='png'
             if(theFormatAE==k.JPEG_picture): theFormat='jpg'
             if(theFormatAE==k.GIF_picture): theFormat='gif'
-            #remove the first 221 bytes to strip off the stupid pict header
-            iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
+            if(theFormatAE==k.PICT_picture): theFormat='pict'
+            if(theFormatAE==k.TIFF_picture): theFormat='tiff'
+            if(theFormatAE==k.EPS_picture): theFormat='eps'
+            if(theFormatAE==k.BMP_picture): theFormat='bmp'
+            try:
+                #there was a bug recently I can't track down. Just catch the problem and carry on
+                #remove the first 221 bytes to strip off the stupid pict header
+                iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
+            except:
+                logging.error("Error trying to get art for track: "+iName+". The script thought the artwork format was: "+theFormat+".")
+                iArt = []
         else:
             iArt = []
         
