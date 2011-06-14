@@ -33,7 +33,7 @@ from appscript import *
 pluginList = { }
 
 class TrackUpdate(object):
-    ignoreAlbum = ""
+    introAlbum = ""
     trackArtist = ""
     trackName  = ""
     trackAlbum = ""
@@ -71,7 +71,7 @@ Example:
             raise
 
         try:
-            self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
+            self.introAlbum = config.get('trackupdate', 'introAlbum')
             self.pollTime = int(config.get('trackupdate', 'pollTime'))
         except ConfigParser.NoSectionError:
             pass
@@ -83,7 +83,8 @@ Example:
                                                                    "episode=", "polltime=", "verbose"])
             except getopt.GetoptError, err:
                 # print help information and exit:
-                logging.error(str(err)) # will print something like "option -a not recognized"
+                logging.error(str(err)) # will print something like 
+                                        # "option -a not recognized"
                 self.usage()
                 sys.exit(2)
 
@@ -111,27 +112,48 @@ Example:
                     assert False, "unhandled option"
 
         self.loadPlugins(config, self.episodeNumber)
-        logging.debug( "   Episode #: %s" % str(self.episodeNumber) )
-        logging.debug( "   Time between polling: %i\n" % self.pollTime )
-
+        logging.debug("   Episode #: %s" % str(self.episodeNumber))
+        logging.debug("   Time between polling: %i\n" % self.pollTime)
 
         try:
-            iTunes = app('iTunes')
-            theNC = app('Nicecast')
-            theNC.start_archiving() #Force nicecast to start archiving things
-            #maybe there is an applescript way to ask nicecast for the path to the archive vs defining it in the rc?
-            #looks like nicecast stores its pref file at ~/Library/Preferences/com.rogueamoeba.Nicecast.plist
-            #since the user can't force nicecast to store its pref file in a custom location, one could pull the archive dir from the plist
-            #http://docs.python.org/library/plistlib.html
+            it = app('iTunes')
+            nc = app('Nicecast')
+
+            if(self.introAlbum != ""):
+                logging.debug("Disabling Archiving until intro over")
+                nc.stop_archiving() 
+
+                while(1):
+                    if((it.player_state() == k.playing) and 
+                       (nc.broadcasting()) and 
+                       (self.startTime==-1) and
+                       (it.current_track.album.get()==self.introAlbum)): 
+                        time.sleep(self.pollTime)
+                    else:
+                        logging.debug("Enabling Archiving")
+                        nc.start_archiving() 
+                        break
+            else:
+                nc.start_archiving() 
+
             while(1):
-                if ((iTunes.player_state() == k.playing) and (theNC.archiving()) and (theNC.broadcasting()) and (self.startTime==-1) and (not iTunes.current_track.album.get()==self.ignoreAlbum)): 
+                if((it.player_state() == k.playing) and 
+                   (nc.archiving()) and 
+                   (nc.broadcasting()) and 
+                   (self.startTime==-1)):
+                    # don't start the timeline until the intro is over
                     self.startTime=time.time()		
-                if (iTunes.player_state() == k.playing): self.processCurrentTrack(iTunes.current_track)
+
+                if(it.player_state() == k.playing): 
+                    self.processCurrentTrack(it.current_track)
 
                 time.sleep(self.pollTime)
 
         except KeyboardInterrupt,SystemExit:
-            logging.debug("\n***Exiting...")
+            logging.debug("Exiting...")
+            logging.debug("Disabling Archiving")
+            nc.stop_archiving() 
+
             for plugin in pluginList:
                 try:
                     pluginList[plugin].close()
@@ -145,8 +167,9 @@ Example:
         iTime = currentTrack.time.get()
         if(not currentTrack.artworks.get()==[]):
             theFormatAE = currentTrack.artworks[1].format.get()
-            #apparently there is no 'png' format, so set it to 'png' and overwrite as necessary
-            #added more formats to try and catch any weird ones
+            # apparently there is no 'png' format, so set it to 'png' and
+            # overwrite as necessary added more formats to try and catch any
+            # weird ones
             theFormat='png'
             if(theFormatAE==k.JPEG_picture): theFormat='jpg'
             if(theFormatAE==k.GIF_picture): theFormat='gif'
@@ -155,8 +178,9 @@ Example:
             if(theFormatAE==k.EPS_picture): theFormat='eps'
             if(theFormatAE==k.BMP_picture): theFormat='bmp'
             try:
-                #there was a bug recently I can't track down. Just catch the problem and carry on
-                #remove the first 221 bytes to strip off the stupid pict header
+                # there was a bug recently I can't track down. Just catch
+                # the problem and carry on remove the first 221 bytes to
+                # strip off the stupid pict header
                 iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
             except:
                 logging.error("Error trying to get art for track: "+iName+". The script thought the artwork format was: "+theFormat+".")
@@ -191,11 +215,6 @@ Example:
             self.trackName  = iName
             self.trackAlbum = iAlbum
             self.trackTime = iTime
-
-            # if the album name matches the blacklist name don't do anything
-            if( self.trackAlbum == self.ignoreAlbum ):
-                logging.info("Album title on blacklist: " + iArtist + " - " + iName + " - " + iAlbum)
-                return
 				
             for plugin in pluginList:
                 try:
@@ -207,9 +226,10 @@ Example:
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
         scriptPath = "."
-        #***this doesn't work for me. STH 11.05.15***
-        #***using os.path.split(__file__)[0] returns "" on my machine, and no plugins are loaded. It can't find the plugin folder at all
-        #scriptPath = os.path.split(__file__)[0]
+        # this doesn't work for me. STH 11.05.15
+        # using os.path.split(__file__)[0] returns "" on my machine, and no
+        # plugins are loaded. It can't find the plugin folder at all
+        # scriptPath = os.path.split(__file__)[0]
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
@@ -218,7 +238,7 @@ Example:
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
             enabled = 'False'
 
-            #if the .rc doesn't define whether it is enabled, defaults to False
+            # if the .rc doesn't define whether it is enabled, defaults to False
             try:
                 enabled = config.get(className, 'enabled')
             except ConfigParser.NoSectionError:
