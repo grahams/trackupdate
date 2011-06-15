@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2009-2010 Sean M. Graham <www.sean-graham.com>
+# Copyright (c) 2009-2011 Sean M. Graham <www.sean-graham.com>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -41,6 +41,10 @@ class TrackUpdate(object):
     episodeNumber = "XX"
     pollTime = 10
     startTime = -1
+    useStopValues = False
+    stopTitle = ""
+    stopArtist = ""
+    stopAlbum = ""
 
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
@@ -54,11 +58,10 @@ Arguments:
     -v  --verbose     you are lonely and want trackupdate to talk more
 
 Example:
-    ./trackupdate.py -e 42
+    ./trackupdate.py -e 42 -t 5 -v
     """)
 
     def __init__(self,argv):
-        
         config = None
         logging.basicConfig(level=logging.WARNING)
 
@@ -73,6 +76,10 @@ Example:
         try:
             self.introAlbum = config.get('trackupdate', 'introAlbum')
             self.pollTime = int(config.get('trackupdate', 'pollTime'))
+            self.useStopValues = config.get('trackupdate', 'useStopValues')
+            self.stopTitle = config.get('trackupdate', 'stopTitle')
+            self.stopArtist = config.get('trackupdate', 'stopArtist')
+            self.stopAlbum = config.get('trackupdate', 'stopAlbum')
         except ConfigParser.NoSectionError:
             pass
 
@@ -80,7 +87,7 @@ Example:
         if(len(argv) > 0):
             try:
                 opts, args = getopt.getopt(sys.argv[1:], "h:e:t:v", ["help",
-                                                                   "episode=", "polltime=", "verbose"])
+                                           "episode=", "polltime=", "verbose"])
             except getopt.GetoptError, err:
                 # print help information and exit:
                 logging.error(str(err)) # will print something like 
@@ -93,7 +100,9 @@ Example:
                     self.episodeNumber = a
                 elif o in ("-t", "--polltime"):
                     a = int(a)
-                    if a >= 0: a = 1
+                    if(a <= 0):
+                        a = 1
+
                     self.pollTime = a
                 elif o in ("-v", "--verbose"):
                     # remove any logging handlers created by logging before
@@ -112,8 +121,8 @@ Example:
                     assert False, "unhandled option"
 
         self.loadPlugins(config, self.episodeNumber)
-        logging.debug("   Episode #: %s" % str(self.episodeNumber))
-        logging.debug("   Time between polling: %i\n" % self.pollTime)
+        logging.debug("Episode #: %s" % str(self.episodeNumber))
+        logging.debug("Time between polling: %i" % self.pollTime)
 
         try:
             it = app('iTunes')
@@ -146,10 +155,19 @@ Example:
 
                 if(it.player_state() == k.playing): 
                     self.processCurrentTrack(it.current_track)
+                elif(self.useStopValues == 'True'):
+                    self.updateTrack(self.stopTitle, 
+                                     self.stopArtist,
+                                     self.stopAlbum, 
+                                     "9:99", 
+                                     [], 
+                                     self.startTime)
+                        
+                    
 
                 time.sleep(self.pollTime)
 
-        except KeyboardInterrupt,SystemExit:
+        except (KeyboardInterrupt,SystemExit):
             logging.debug("Exiting...")
             logging.debug("Disabling Archiving")
             nc.stop_archiving() 
@@ -171,19 +189,28 @@ Example:
             # overwrite as necessary added more formats to try and catch any
             # weird ones
             theFormat='png'
-            if(theFormatAE==k.JPEG_picture): theFormat='jpg'
-            if(theFormatAE==k.GIF_picture): theFormat='gif'
-            if(theFormatAE==k.PICT_picture): theFormat='pict'
-            if(theFormatAE==k.TIFF_picture): theFormat='tiff'
-            if(theFormatAE==k.EPS_picture): theFormat='eps'
-            if(theFormatAE==k.BMP_picture): theFormat='bmp'
+
+            if(theFormatAE == k.JPEG_picture): 
+                theFormat='jpg'
+            elif(theFormatAE == k.GIF_picture): 
+                theFormat='gif'
+            elif(theFormatAE == k.PICT_picture): 
+                theFormat='pict'
+            elif(theFormatAE == k.TIFF_picture): 
+                theFormat='tiff'
+            elif(theFormatAE == k.EPS_picture): 
+                theFormat='eps'
+            elif(theFormatAE == k.BMP_picture): 
+                theFormat='bmp'
+
             try:
                 # there was a bug recently I can't track down. Just catch
                 # the problem and carry on remove the first 221 bytes to
                 # strip off the stupid pict header
                 iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
             except:
-                logging.error("Error trying to get art for track: "+iName+". The script thought the artwork format was: "+theFormat+".")
+                logging.error("Error trying to get art for track: " + iName)
+                logging.error("Detected format was: " + theFormat)
                 iArt = []
         else:
             iArt = []
@@ -209,27 +236,30 @@ Example:
         else:
             iTime = ""
 
+        self.updateTrack(iName, iArtist, iAlbum, 
+                         iTime, iArt, self.startTime)
+
+    def updateTrack(self, name, artist, album, time, art, startTime):
         # make sure the track has actually changed
-        if( (iArtist != self.trackArtist) or (iName != self.trackName) ):
-            self.trackArtist = iArtist
-            self.trackName  = iName
-            self.trackAlbum = iAlbum
-            self.trackTime = iTime
-				
+        if( (artist != self.trackArtist) or (name != self.trackName) ):
+            self.trackArtist = artist
+            self.trackName  = name
+            self.trackAlbum = album
+            self.trackTime = time
+
             for plugin in pluginList:
                 try:
-                    pluginList[plugin].logTrack(iName, iArtist, iAlbum, iTime, iArt, self.startTime)
+                    pluginList[plugin].logTrack(name, artist, album,    
+                                                time, art, startTime)
                 except:
                     logging.error(plugin + ": Error trying to update track")
-
+        
 
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
-        scriptPath = "."
-        # this doesn't work for me. STH 11.05.15
-        # using os.path.split(__file__)[0] returns "" on my machine, and no
-        # plugins are loaded. It can't find the plugin folder at all
-        # scriptPath = os.path.split(__file__)[0]
+
+        scriptPath = os.path.split(sys.argv[0])[0]
+
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
@@ -247,9 +277,9 @@ Example:
                 enabled = 'False'
 
             if(enabled=='False'):
-                logging.debug("   Skipping plugin '%s'." % className)
+                logging.debug("Skipping plugin '%s'." % className)
             else:
-                logging.debug("   Loading plugin '%s'...." % className)
+                logging.debug("Loading plugin '%s'...." % className)
 
                 # import the module
                 mod = __import__(className, globals(), locals(), [''])
