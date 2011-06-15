@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Copyright (c) 2009-2011 Sean M. Graham <www.sean-graham.com>
 # 
