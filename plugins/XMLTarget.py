@@ -157,7 +157,8 @@ class XMLTarget(Target):
                         theAlbum=""
                     #except:
                     #    break
-                fh.write("<link>"+theUrl+"</link>\n")
+                #fh.write("<link>"+theUrl+"</link>\n")
+                fh.write('<link href="'+theUrl+'">Buy Track</link>\n')
     
             fh.write("</chapter>\n")
             fh.close()
