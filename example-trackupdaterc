@@ -1,7 +1,13 @@
 [trackupdate]
 # You can blacklist an album name (to omit it from the listings)
-ignoreAlbum: Radio Programme
-pollTime: 10
+introAlbum: Radio Programme Heartbeat
+pollTime: 1
+
+# default info to appear while iTunes is stopped
+useStopValues: True
+stopTitle: grahams' completely normal radio programme
+stopArtist: grahams
+stopAlbum: grahams' completely normal radio programme
 
 # these are some initial values to insert into the NowPlaying.txt file.
 # Will be overridden by the first (non-ignoreAlbum'ed) track you play
