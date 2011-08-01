@@ -35,13 +35,15 @@ class MakeM4B:
     audioOut=""
     theXML=""
     theFolder=""
-    chapterToolPath="/Applications/GarageBand.app/Contents/MacOS/ChapterTool "
+    #chapterToolPath="/Applications/GarageBand.app/Contents/MacOS/ChapterTool "
+    chapterToolPath="ChapterX"
 
     def usage(self):
         print( "Usage: makeM4B.py -x file.xml -a file.mp3 -o file.m4b" )
         print( "Usage: makeM4B.py -f folder_path" )
         print( """
-This script uses afconvert and ChapterTool to turn a mp3 and associated xml file into an "advance mp3" (m4b) file. It is meant to work in conjunction with trackupdate.py
+This script uses afconvert and ChapterX to turn a mp3 and associated xml file into an "advance mp3" (m4b) file. It is meant to work in conjunction with trackupdate.py
+Note: ChapterTool is not being maintained by Apple. A replacement named ChapterX is being developed by the good people(person?) at bluezbox.com
 
 Requires:
     /usr/bin/afconvert
@@ -136,18 +138,19 @@ Examples:
             self.theFolder=os.path.split(self.audioIn)[0]
             
         print("Making a copy of the archive as an m4a...")
-        theCommand="afconvert -f 'mp4f' -d 'aac ' '%s' '%s.m4a'" % (self.audioIn, self.audioOut)
+        theCommand="afconvert -f 'mp4f' -d 'aac ' '%s' '%s.m4b'" % (self.audioIn, self.audioOut)
         os.system(theCommand)
         #check and see if the m4a was made
-        if(not os.path.exists(self.audioOut+".m4a")):
-            print("***Audio file (m4a) not found. Please use the -h option to see parameters.***")
+        if(not os.path.exists(self.audioOut+".m4b")):
+            print("***Audio file (m4b) not found. Please use the -h option to see parameters.***")
             sys.exit()
-        self.audioIn=self.audioOut+".m4a"
+        self.audioIn=self.audioOut+".m4b"
         
         print("Making m4b file...")
         currWorkDir=os.getcwd()
         os.chdir(self.theFolder)
-        theCommand="%s -x '%s' -a '%s' -o '%s.m4b'" % (self.chapterToolPath, self.theXML, self.audioIn, self.audioOut)
+        #theCommand="%s -x '%s' -a '%s' -o '%s.m4b'" % (self.chapterToolPath, self.theXML, self.audioIn, self.audioOut)
+        theCommand="%s '%s' '%s.m4b'" % (self.chapterToolPath, self.theXML, self.audioOut)
         os.system(theCommand)
         os.chdir(currWorkDir)
 
