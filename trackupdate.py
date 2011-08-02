@@ -258,12 +258,17 @@ Example:
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
 
-        scriptPath = os.path.split(sys.argv[0])[0]
-
+        # scriptPath = os.path.split(sys.argv[0])[0]
+        # scriptPath = os.path.split(sys.argv[0])[0] doesn't work for me. STH 11.05.15
+        # still doesn't work on 11.07.29
+        # using os.path.split(__file__)[0] returns "" on my machine, and no
+        # plugins are loaded. It can't find the plugin folder at all
+        # scriptPath = os.path.split(__file__)[0]
+        scriptPath = "."
+        
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
         pluginNames = glob.glob(scriptPath + "/plugins/*.py")
-        
         for x in pluginNames:
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
             enabled = 'False'

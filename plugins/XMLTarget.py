@@ -158,7 +158,11 @@ class XMLTarget(Target):
                     #except:
                     #    break
                 #fh.write("<link>"+theUrl+"</link>\n")
-                fh.write('<link href="'+theUrl+'">Buy Track</link>\n')
+                if(theUrl==""):
+                    fh.write('<link></link>\n')                
+                else:
+                    theUrl=theUrl.replace('&','&amp;')
+                    fh.write('<link href="'+theUrl+'">Buy Track</link>\n')
     
             fh.write("</chapter>\n")
             fh.close()
