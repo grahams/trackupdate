@@ -28,6 +28,7 @@ import ConfigParser
 import glob
 import logging
 
+import appscript
 from appscript import *
 
 pluginList = { }
@@ -133,16 +134,24 @@ Example:
                 nc.stop_archiving() 
 
                 while(1):
-                    if((it.player_state() == k.playing) and 
-                       (nc.broadcasting()) and 
-                       (self.startTime==-1) and
-                       (it.current_track.album.get()==self.introAlbum)): 
-                        time.sleep(self.pollTime)
+                    if(self.startTime==-1):
+                        if((it.player_state() == k.paused) or
+                           (it.player_state() == k.stopped) or
+                           ((it.player_state() == k.playing) and
+                            (it.current_track.album.get() == 
+                                    self.introAlbum))
+                          ):
+                            time.sleep(self.pollTime)
+                        else:
+                            logging.debug("Enabling Archiving")
+                            nc.start_archiving() 
+                            break
                     else:
                         logging.debug("Enabling Archiving")
                         nc.start_archiving() 
                         break
             else:
+                logging.debug("Enabling Archiving")
                 nc.start_archiving() 
 
             while(1):
@@ -167,52 +176,69 @@ Example:
 
                 time.sleep(self.pollTime)
 
-        except (KeyboardInterrupt,SystemExit):
-            logging.debug("Exiting...")
-            logging.debug("Disabling Archiving")
-            nc.stop_archiving() 
+        except (appscript.reference.CommandError):
+            logging.error("Appscript error caught: winding down")
+            self.cleanUp(nc)
 
-            for plugin in pluginList:
-                try:
-                    pluginList[plugin].close()
-                except:
-                    logging.error(plugin + ": Error trying to close target")
+        except (KeyboardInterrupt,SystemExit):
+            self.cleanUp(nc)
+
+    def cleanUp(self, nc):
+        logging.debug("Exiting...")
+        logging.debug("Disabling Archiving")
+
+        try:
+            nc.stop_archiving() 
+        except (appscript.reference.CommandError):
+            logging.error("Nicecast no longer running, unable to stop archiving")
+
+        for plugin in pluginList:
+            try:
+                pluginList[plugin].close()
+            except:
+                logging.error(plugin + ": Error trying to close target")
+    
 
     def processCurrentTrack(self, currentTrack):
         iArtist = currentTrack.artist.get()
         iName = currentTrack.name.get()
         iAlbum = currentTrack.album.get()
         iTime = currentTrack.time.get()
-        if(not currentTrack.artworks.get()==[]):
-            theFormatAE = currentTrack.artworks[1].format.get()
-            # apparently there is no 'png' format, so set it to 'png' and
-            # overwrite as necessary added more formats to try and catch any
-            # weird ones
-            theFormat='png'
 
-            if(theFormatAE == k.JPEG_picture): 
-                theFormat='jpg'
-            elif(theFormatAE == k.GIF_picture): 
-                theFormat='gif'
-            elif(theFormatAE == k.PICT_picture): 
-                theFormat='pict'
-            elif(theFormatAE == k.TIFF_picture): 
-                theFormat='tiff'
-            elif(theFormatAE == k.EPS_picture): 
-                theFormat='eps'
-            elif(theFormatAE == k.BMP_picture): 
-                theFormat='bmp'
+        try:
+            if(not currentTrack.artworks.get()==[]):
+                theFormatAE = currentTrack.artworks[1].format.get()
+                # apparently there is no 'png' format, so set it to 'png' and
+                # overwrite as necessary added more formats to try and catch any
+                # weird ones
+                theFormat='png'
 
-            try:
-                # there was a bug recently I can't track down. Just catch
-                # the problem and carry on remove the first 221 bytes to
-                # strip off the stupid pict header
-                iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
-            except:
-                logging.error("Error trying to get art for track: " + iName)
-                logging.error("Detected format was: " + theFormat)
+                if(theFormatAE == k.JPEG_picture): 
+                    theFormat='jpg'
+                elif(theFormatAE == k.GIF_picture): 
+                    theFormat='gif'
+                elif(theFormatAE == k.PICT_picture): 
+                    theFormat='pict'
+                elif(theFormatAE == k.TIFF_picture): 
+                    theFormat='tiff'
+                elif(theFormatAE == k.EPS_picture): 
+                    theFormat='eps'
+                elif(theFormatAE == k.BMP_picture): 
+                    theFormat='bmp'
+
+                try:
+                    # there was a bug recently I can't track down. Just catch
+                    # the problem and carry on remove the first 221 bytes to
+                    # strip off the stupid pict header
+                    iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
+                except:
+                    logging.error("Error trying to get art for track: " + iName)
+                    logging.error("Detected format was: " + theFormat)
+                    iArt = []
+            else:
                 iArt = []
-        else:
+        except:
+            # getting art has caused trouble
             iArt = []
         
         # check for missing values
@@ -258,13 +284,7 @@ Example:
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
 
-        # scriptPath = os.path.split(sys.argv[0])[0]
-        # scriptPath = os.path.split(sys.argv[0])[0] doesn't work for me. STH 11.05.15
-        # still doesn't work on 11.07.29
-        # using os.path.split(__file__)[0] returns "" on my machine, and no
-        # plugins are loaded. It can't find the plugin folder at all
-        # scriptPath = os.path.split(__file__)[0]
-        scriptPath = "."
+        scriptPath = os.path.split(os.path.abspath(__file__))[0]
         
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
