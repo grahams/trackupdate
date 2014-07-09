@@ -20,19 +20,16 @@
 
 from Target import Target
 import ConfigParser
-import os
-import ConfigParser;
 
 # Since the user may not have python-twitter installed, and I didn't want it
 # to fail ugly in that case, we do some exception handling
 importSuccessful = True
 
 try:
-    from oauth import oauth
-    from oauthtwitter import OAuthApi
+    import twitter
 except ImportError:
-    print("TwitterTarget: oauth-python-twitter2 module missing, check out:") 
-    print("TwitterTarget:     http://code.google.com/p/oauth-python-twitter2/")
+    print("TwitterTarget: twitter module missing, check out:") 
+    print("TwitterTarget:     https://pypi.python.org/pypi/twitter/1.10.0")
     importSuccessful = False
 
 class TwitterTarget(Target):
@@ -44,6 +41,7 @@ class TwitterTarget(Target):
     OAuthConsumerSecret = None
     OAuthUserToken = None
     OAuthUserTokenSecret = None
+    t = None
 
     def __init__(self, config, episode):
         if( importSuccessful == True ):
@@ -87,45 +85,100 @@ class TwitterTarget(Target):
             except ConfigParser.NoOptionError:
                 pass
 
-            self.api = OAuthApi(self.OAuthConsumerKey,
-                                self.OAuthConsumerSecret,
-                                self.OAuthUserToken,
-                                self.OAuthUserTokenSecret)
+            self.t = twitter.Api(consumer_key=self.OAuthConsumerKey, 
+                                 consumer_secret=self.OAuthConsumerSecret,
+                                 access_token_key=self.OAuthUserToken, 
+                                 access_token_secret=self.OAuthUserTokenSecret) 
+
 
             if(self.initTweet != None):
-                self.api.UpdateStatus(self.initTweet)
+                try:
+                    self.t.PostUpdate(self.initTweet)
+                except twitter.TwitterError:
+                    print "twitter error"
         return
 
     def close(self):
         if( importSuccessful == True ):
-            if( self.api != None ):
+            if( self.t != None ):
                 if(self.closeTweet != None):
                     print("Posting farewell to Twitter...")
-                    self.api.UpdateStatus(self.closeTweet)
+                    try:
+                        self.t.PostUpdate(self.closeTweet)
+                    except twitter.TwitterError:
+                        print "twitter error"
                 return
 
     def logTrack(self, title, artist, album, time, art, startTime):
         if( importSuccessful == True ):
-            if( self.api != None ):
+            if( self.t != None ):
                 tweet = artist + " - " + title
 
-                if( len(tweet) > 140 ):
-                    self.api.UpdateStatus(tweet[0:140])
-                else:
-                    self.api.UpdateStatus(tweet)
+                try:
+                    if( len(tweet) > 140 ):
+                        self.t.PostUpdate(tweet[0:140])
+                    else:
+                        self.t.PostUpdate(tweet)
+                except twitter.TwitterError:
+                    print "twitter error"
 
     def obtainAuth(self):
-        twitter = OAuthApi(self.OAuthConsumerKey, self.OAuthConsumerSecret)
+        import urlparse
+        import oauth2 as oauth
 
-        # Get the temporary credentials for our next few calls
-        temp_credentials = twitter.getRequestToken()
+        consumer_key = self.OAuthConsumerKey
+        consumer_secret = self.OAuthConsumerSecret
 
-        # User pastes this into their browser to bring back a pin number
-        print(twitter.getAuthorizationURL(temp_credentials))
+        request_token_url = 'https://twitter.com/oauth/request_token'
+        access_token_url = 'https://twitter.com/oauth/access_token'
+        authorize_url = 'https://twitter.com/oauth/authorize'
 
-        # Get the pin # from the user and get our permanent credentials
+        consumer = oauth.Consumer(consumer_key, consumer_secret)
+        client = oauth.Client(consumer)
+
+        # Step 1: Get a request token. This is a temporary token that is used for 
+        # having the user authorize an access token and to sign the request to obtain 
+        # said access token.
+
+        resp, content = client.request(request_token_url, "GET")
+        if resp['status'] != '200':
+            raise Exception("Invalid response %s." % resp['status'])
+
+        request_token = dict(urlparse.parse_qsl(content))
+
+        print "Request Token:"
+        print "    - oauth_token        = %s" % request_token['oauth_token']
+        print "    - oauth_token_secret = %s" % request_token['oauth_token_secret']
+        print 
+
+        # Step 2: Redirect to the provider. Since this is a CLI script we do not 
+        # redirect. In a web application you would redirect the user to the URL
+        # below.
+
+        print "Go to the following link in your browser:"
+        print "%s?oauth_token=%s" % (authorize_url, request_token['oauth_token'])
+        print 
+
+        # After the user has granted access to you, the consumer, the provider will
+        # redirect you to whatever URL you have told them to redirect to. You can 
+        # usually define this in the oauth_callback argument as well.
+        accepted = 'n'
+        while accepted.lower() == 'n':
+            accepted = raw_input('Have you authorized me? (y/n) ')
         oauth_verifier = raw_input('What is the PIN? ')
-        access_token = twitter.getAccessToken(temp_credentials, oauth_verifier)
+
+        # Step 3: Once the consumer has redirected the user back to the oauth_callback
+        # URL you can request the access token the user has approved. You use the 
+        # request token to sign this request. After this is done you throw away the
+        # request token and use the access token returned. You should store this 
+        # access token somewhere safe, like a database, for future use.
+        token = oauth.Token(request_token['oauth_token'],
+            request_token['oauth_token_secret'])
+        token.set_verifier(oauth_verifier)
+        client = oauth.Client(consumer, token)
+
+        resp, content = client.request(access_token_url, "POST")
+        access_token = dict(urlparse.parse_qsl(content))
 
         self.OAuthUserToken = access_token['oauth_token']
         self.OAuthUserTokenSecret = access_token['oauth_token_secret']
