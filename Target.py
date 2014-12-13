@@ -27,7 +27,7 @@ class Target(object):
     def close(self):
         print "If this were a real plugin we would do some destruction here"
 
-    def logTrack(self, title, artist, album, time, art, startTime):
+    def logTrack(self, title, artist, album, time, startTime):
         print "If this were a real plugin it would do something profound with this data:"
 
         print "title: " + title

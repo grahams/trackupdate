@@ -31,5 +31,5 @@ class StdioTarget(Target):
     def close(self):
         return
 
-    def logTrack(self, title, artist, album, time, art, startTime):
+    def logTrack(self, title, artist, album, time, startTime):
         print artist + " - " + title

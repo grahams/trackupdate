@@ -109,7 +109,7 @@ class TwitterTarget(Target):
                         print "twitter error"
                 return
 
-    def logTrack(self, title, artist, album, time, art, startTime):
+    def logTrack(self, title, artist, album, time, startTime):
         if( importSuccessful == True ):
             if( self.t != None ):
                 tweet = artist + " - " + title

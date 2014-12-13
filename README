@@ -1,5 +1,5 @@
 nicecast-trackupdate v1.1
-(c) 2009-2010 - Sean M. Graham 
+(c) 2009-2014 - Sean M. Graham 
 
 This code exists under an MIT license, see LICENSE for details
 
@@ -23,11 +23,6 @@ perform various tasks. The currently included plugins are:
 trackupdate and some of its plugins require configuration data, which is
 stored in a file named ~/.trackupdaterc. See example-trackupdaterc for
 details on the various configuration options.
-
-This script requires 'appscript' be installed, information about appscript
-can be found here:
-
-http://appscript.sourceforge.net/py-appscript/index.html
 
 While this script is running, you may notice a persistent bouncing dock icon
 for python.  This annoyed me, so I removed it by editing:

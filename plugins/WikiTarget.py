@@ -73,7 +73,7 @@ class WikiTarget(Target):
             page.edit(appendtext=self.text)
 
         
-    def logTrack(self, title, artist, album, time, art, startTime):
+    def logTrack(self, title, artist, album, time, startTime):
         if( self.createWikiText == True ):
             self.text += "|" + title + '\n'
             self.text += "|" + artist + '\n'

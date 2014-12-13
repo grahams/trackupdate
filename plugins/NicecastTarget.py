@@ -54,7 +54,7 @@ class NicecastTarget(Target):
     def close(self):
         os.remove(self.nowPlayingFilePath)
 
-    def logTrack(self, title, artist, album, time, art, startTime):
+    def logTrack(self, title, artist, album, time, startTime):
         fh = open(self.nowPlayingFilePath, 'w')
         fh.write("Title: " + title + '\n')
         fh.write("Artist: " + artist + '\n')

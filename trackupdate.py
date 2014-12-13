@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2009-2011 Sean M. Graham <www.sean-graham.com>
+# Copyright (c) 2009-2014 Sean M. Graham <www.sean-graham.com>
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -27,9 +27,8 @@ import getopt
 import ConfigParser
 import glob
 import logging
-
-import appscript
-from appscript import *
+import subprocess
+import json
 
 pluginList = { }
 
@@ -126,71 +125,68 @@ Example:
         logging.debug("Time between polling: %i" % self.pollTime)
 
         try:
-            it = app('iTunes')
-            nc = app('Nicecast')
-
             if(self.introAlbum != ""):
-                logging.debug("Disabling Archiving until intro over")
-                nc.stop_archiving() 
+            #     logging.debug("Disabling Archiving until intro over")
+            #     nc.stop_archiving() 
 
                 while(1):
                     if(self.startTime==-1):
-                        if((it.player_state() == k.paused) or
-                           (it.player_state() == k.stopped) or
-                           ((it.player_state() == k.playing) and
-                            (it.current_track.album.get() == 
-                                    self.introAlbum))
-                          ):
+                        track = json.loads(subprocess.check_output(["osascript",
+                                             "Automation/GetCurrentTrackJSON.scpt"]))
+                        album = None
+
+                        if('album' in track.keys()):
+                            album = track['album']
+                        
+
+                        if((len(track) == 0) or (album == self.introAlbum)):
                             time.sleep(self.pollTime)
                         else:
-                            logging.debug("Enabling Archiving")
-                            nc.start_archiving() 
+                            # logging.debug("Enabling Archiving")
+                            # nc.start_archiving() 
                             break
                     else:
-                        logging.debug("Enabling Archiving")
-                        nc.start_archiving() 
+                        # logging.debug("Enabling Archiving")
+                        # nc.start_archiving() 
                         break
-            else:
-                logging.debug("Enabling Archiving")
-                nc.start_archiving() 
+            # else:
+            #     logging.debug("Enabling Archiving")
+            #     nc.start_archiving() 
 
             while(1):
-                if((it.player_state() == k.playing) and 
-                   (nc.archiving()) and 
-                   (nc.broadcasting()) and 
-                   (self.startTime==-1)):
-                    # don't start the timeline until the intro is over
-                    self.startTime=time.time()		
+                # if((it.player_state() == k.playing) and 
+                #    (nc.archiving()) and 
+                #    (nc.broadcasting()) and 
+                #    (self.startTime==-1)):
+                #     # don't start the timeline until the intro is over
+                #     self.startTime=time.time()		
 
-                if(it.player_state() == k.playing): 
-                    self.processCurrentTrack(it.current_track)
+                track = json.loads(subprocess.check_output(["osascript",
+                                     "Automation/GetCurrentTrackJSON.scpt"]))
+
+                if(len(track) > 0):
+                    self.processCurrentTrack(track)
                 elif(self.useStopValues == 'True'):
                     self.updateTrack(self.stopTitle, 
                                      self.stopArtist,
                                      self.stopAlbum, 
                                      "9:99", 
-                                     [], 
                                      self.startTime)
                         
                     
 
                 time.sleep(self.pollTime)
-
-        except (appscript.reference.CommandError):
-            logging.error("Appscript error caught: winding down")
-            self.cleanUp(nc)
-
         except (KeyboardInterrupt,SystemExit):
-            self.cleanUp(nc)
+            self.cleanUp()
 
-    def cleanUp(self, nc):
+    def cleanUp(self):
         logging.debug("Exiting...")
-        logging.debug("Disabling Archiving")
+        # logging.debug("Disabling Archiving")
 
-        try:
-            nc.stop_archiving() 
-        except (appscript.reference.CommandError):
-            logging.error("Nicecast no longer running, unable to stop archiving")
+        # try:
+        #     nc.stop_archiving() 
+        # except (appscript.reference.CommandError):
+        #     logging.error("Nicecast no longer running, unable to stop archiving")
 
         for plugin in pluginList:
             try:
@@ -199,73 +195,25 @@ Example:
                 logging.error(plugin + ": Error trying to close target")
     
 
-    def processCurrentTrack(self, currentTrack):
-        iArtist = currentTrack.artist.get()
-        iName = currentTrack.name.get()
-        iAlbum = currentTrack.album.get()
-        iTime = currentTrack.time.get()
+    def processCurrentTrack(self, t):
+        iArtist = ""
+        iName = ""
+        iAlbum = ""
+        iTime = ""
 
-        try:
-            if(not currentTrack.artworks.get()==[]):
-                theFormatAE = currentTrack.artworks[1].format.get()
-                # apparently there is no 'png' format, so set it to 'png' and
-                # overwrite as necessary added more formats to try and catch any
-                # weird ones
-                theFormat='png'
-
-                if(theFormatAE == k.JPEG_picture): 
-                    theFormat='jpg'
-                elif(theFormatAE == k.GIF_picture): 
-                    theFormat='gif'
-                elif(theFormatAE == k.PICT_picture): 
-                    theFormat='pict'
-                elif(theFormatAE == k.TIFF_picture): 
-                    theFormat='tiff'
-                elif(theFormatAE == k.EPS_picture): 
-                    theFormat='eps'
-                elif(theFormatAE == k.BMP_picture): 
-                    theFormat='bmp'
-
-                try:
-                    # there was a bug recently I can't track down. Just catch
-                    # the problem and carry on remove the first 221 bytes to
-                    # strip off the stupid pict header
-                    iArt = [currentTrack.artworks[1].data_.get().data[222:], theFormat]
-                except:
-                    logging.error("Error trying to get art for track: " + iName)
-                    logging.error("Detected format was: " + theFormat)
-                    iArt = []
-            else:
-                iArt = []
-        except:
-            # getting art has caused trouble
-            iArt = []
-        
-        # check for missing values
-        if( iArtist != k.missing_value ):
-            iArtist = iArtist.encode("utf-8")
-        else:
-            iArtist = ""
-
-        if( iName != k.missing_value ):
-            iName = iName.encode("utf-8")
-        else:
-            iName = ""
-
-        if( iAlbum != k.missing_value ):
-            iAlbum = iAlbum.encode("utf-8")
-        else:
-            iAlbum = ""
-
-        if( iTime != k.missing_value ):
-            iTime = iTime.encode("utf-8")
-        else:
-            iTime = ""
+        if('artist' in t.keys()):
+            iArtist = t['artist']
+        if('name' in t.keys()):
+            iName = t['name']
+        if('album' in t.keys()):
+            iAlbum = t['album']
+        if('time' in t.keys()):
+            iTime = t['time']
 
         self.updateTrack(iName, iArtist, iAlbum, 
-                         iTime, iArt, self.startTime)
+                         iTime, self.startTime)
 
-    def updateTrack(self, name, artist, album, time, art, startTime):
+    def updateTrack(self, name, artist, album, time, startTime):
         # make sure the track has actually changed
         if( (artist != self.trackArtist) or (name != self.trackName) ):
             self.trackArtist = artist
@@ -276,7 +224,7 @@ Example:
             for plugin in pluginList:
                 try:
                     pluginList[plugin].logTrack(name, artist, album,    
-                                                time, art, startTime)
+                                                time, startTime)
                 except:
                     logging.error(plugin + ": Error trying to update track")
         
