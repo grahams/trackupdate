@@ -39,6 +39,7 @@ closeTweet: Thanks for listening!  # Optional: Sent when plugin closes
 
 # You need to obtain a Consumer Key/Secret here:
 # https://twitter.com/apps/new
+enabled: True
 OAuthConsumerKey: <key>
 OAuthConsumerSecret: <key>
 
@@ -66,13 +67,20 @@ enabled: True
 filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
 
 # these values will be put into the mp3's id3v2 tag
+enabled: True
 artistName: grahams
 albumName: grahams' completely normal radio programme
 
-[SlackTarget]
+[XMLTarget]
 enabled: True
-slackChannel : #workshop
-#see https://api.slack.com/incoming-webhooks for info on slack webhooks
-webhookURL : <slack webhook url>
-emojiName : musical_note
-announcementPrefix: "You hear a voice over the radio say: "
+# where you want the advanced podcast temp files to be make
+m4bFolder: ~/Desktop/AdvancedPodcast
+mp3FilePath: ~/Music/Nicecast Broadcast Archive/
+chapterToolPath: /Applications/GarageBand.app/Contents/MacOS/ChapterTool
+includeArt: True
+# setting the following value to nothing is the same a saying not to use default art
+defaultArt:  plugins/default_art.png
+includeLinks: True
+linkUrl: http://itunes.apple.com/WebObjects/MZStoreServices.woa/ws/wsSearch
+#track artist, track name, track album
+queryUrl: term=%s+%s+%s&country=US&media=music&entity=musicTrack&limit=1
