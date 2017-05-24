@@ -66,19 +66,12 @@ Example:
         logging.basicConfig(level=logging.WARNING)
 
         # process config file
-        #STH 2017-0524 the following wouldn't actually catch whether .trackupdaterc
-        #is missing, and wouldn't see whether it had a [trackupdate] section
-        # try:
-        #     config = ConfigParser.ConfigParser()
-        #     config.read(os.path.expanduser('~/.trackupdaterc'))
-        # except ConfigParser.MissingSectionHeaderError:
-        #     logging.warning("Warning: Invalid config file, no [trackupdate] section.")
-        #     raise
-        if not os.path.isfile(os.path.expanduser('~/.trackupdaterc')):
-            logging.warning("Warning: no config .trackupdaterc file.")
-
-        config = ConfigParser.ConfigParser()
-        config.read(os.path.expanduser('~/.trackupdaterc'))
+        try:
+            config = ConfigParser.ConfigParser()
+            config.read(os.path.expanduser('~/.trackupdaterc'))
+        except ConfigParser.MissingSectionHeaderError:
+            logging.warning("Warning: Invalid config file, no [trackupdate] section.")
+            raise
 
         try:
             self.introAlbum = config.get('trackupdate', 'introAlbum')
@@ -88,12 +81,7 @@ Example:
             self.stopArtist = config.get('trackupdate', 'stopArtist')
             self.stopAlbum = config.get('trackupdate', 'stopAlbum')
         except ConfigParser.NoSectionError:
-            logging.warning("Warning: Invalid config file, no [trackupdate] section.")
             pass
-        except ConfigParser.NoOptionError:
-            print("[trackupdate]: Missing values in config")
-            return
-
 
         # process command-line arguments
         if(len(argv) > 0):
