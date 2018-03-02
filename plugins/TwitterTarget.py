@@ -29,7 +29,7 @@ try:
     import twitter
 except ImportError:
     print("TwitterTarget: twitter module missing, check out:") 
-    print("TwitterTarget:     https://pypi.python.org/pypi/twitter/1.10.0")
+    print("TwitterTarget:     https://pypi.python.org/pypi/python-twitter/3.3")
     importSuccessful = False
 
 class TwitterTarget(Target):
