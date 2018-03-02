@@ -18,6 +18,13 @@ initArtist: grahams
 initAlbum: grahams' completely normal radio programme
 initTime: 9:99
 
+[LadioCastTarget]
+enabled: True
+initTitle: Show will begin shortly
+initArtist: grahams
+initAlbum: grahams' completely normal radio programme
+initTime: 9:99
+
 [StdioTarget]
 enabled: True
 
