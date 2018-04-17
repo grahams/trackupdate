@@ -22,6 +22,7 @@ from Target import Target
 import ConfigParser
 import os
 import string
+import subprocess
 
 class SlackTarget(Target):
     nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')
@@ -58,7 +59,7 @@ class SlackTarget(Target):
         theArtist=string.replace(theArtist, "\"", "\u0022")
         theTrackString = "_%s_ by %s" % (theTitle, theArtist)
         thePayload = self.theJSONPayload % (self.slackChannel, self.slackAnnouncementPrefix, theTrackString, self.slackEmoji)
-        theArgument = "curl -X POST --data-urlencode 'payload=%s'  %s" % (thePayload, self.slackWebHookUrl)
-        os.system(theArgument)
+        theArgument = "curl -s -X POST --data-urlencode 'payload=%s'  %s" % (thePayload, self.slackWebHookUrl)
+        subprocess.check_output(theArgument, shell=True)
 
 
