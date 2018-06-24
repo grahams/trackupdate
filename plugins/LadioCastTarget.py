@@ -47,7 +47,7 @@ class LadioCastTarget(Target):
         return
 
     def logTrack(self, title, artist, album, time, startTime):
-        theCmd = """osascript -e 'tell application "LadioCast" to set metadata song to "%s -- %s"'""" % (title, artist)
+        theCmd = """osascript -e 'tell application "LadioCast" to set metadata song to "%s - %s"'""" % (artist, title)
 
         os.system(theCmd)
 
