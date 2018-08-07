@@ -12,7 +12,7 @@ stopAlbum: grahams' completely normal radio programme
 # these are some initial values to insert into the NowPlaying.txt file.
 # Will be overridden by the first (non-ignoreAlbum'ed) track you play
 [NicecastTarget]
-enabled: True
+enabled: False
 initTitle: Show will begin shortly
 initArtist: grahams
 initAlbum: grahams' completely normal radio programme
