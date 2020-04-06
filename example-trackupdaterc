@@ -68,15 +68,6 @@ password: pencil
 xmlrpc: http://your.blog.com/xmlrpc.php
 blogId: 0
 
-[ID3Target]
-enabled: True
-# where you have Nicecast configured to store it's archives
-filePath: /Users/grahams/Music/Nicecast Broadcast Archive/
-
-# these values will be put into the mp3's id3v2 tag
-artistName: grahams
-albumName: grahams' completely normal radio programme
-
 [SlackTarget]
 enabled: True
 slackChannel : #workshop
