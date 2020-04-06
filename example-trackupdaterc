@@ -64,3 +64,8 @@ slackChannel : #workshop
 webhookURL : <slack webhook url>
 emojiName : musical_note
 announcementPrefix: "You hear a voice over the radio say: "
+
+[ListFileTarget]
+enabled: True
+filePath: ~/Music/Audio Hijack
+archiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20The%%20Antonelli%%20Hour%%20Radio%%20.mp3
