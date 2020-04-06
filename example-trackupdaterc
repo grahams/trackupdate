@@ -50,13 +50,6 @@ OAuthConsumerSecret: <key>
 #OAuthUserToken: <key>
 #OAuthUserTokenSecret: <key>
 
-[WordpressTarget]
-enabled: True
-username: foouser
-password: pencil
-xmlrpc: http://your.blog.com/xmlrpc.php
-blogId: 0
-
 [SlackTarget]
 enabled: True
 slackChannel : #workshop
