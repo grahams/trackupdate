@@ -29,17 +29,6 @@ initTime: 9:99
 [StdioTarget]
 enabled: True
 
-[WikiTarget]
-enabled: True
-wikiApiURL: http://wiki.example.com/api.php
-wikiUsername: Vincent
-wikiPassword: pencil
-wikiPageName: The Antonelli Hour
-
-# If this is set, this will be used as a link in the title of the wikitext.  
-# It will be processed by strftime, so you can format it
-wikiArchiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20The%%20Antonelli%%20Hour%%20Radio%%20.mp3
-
 [TwitterTarget]
 enabled: True
 initTweet: The show is on!         # Optional: Sent when plugin inits
