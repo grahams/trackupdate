@@ -1,21 +1,22 @@
-nicecast-trackupdate v1.1
-(c) 2009-2014 - Sean M. Graham 
+nicecast-trackupdate v1.2
+(c) 2009-2020 - Sean M. Graham 
 
 This code exists under an MIT license, see LICENSE for details
 
 --
 
-trackupdate polls iTunes every 10 seconds for information about the
+trackupdate polls Apple Music every 10 seconds for information about the
 currently playing track and hands this information to target plugins to
 perform various tasks. The currently included plugins are:
 
 - StdioTarget - Prints the current artist and track to stdout (aka "the
   terminal")
-- NicecastTarget - Places the current track info into Nicecast's
+- AudioHijackTarget - Places the current track info into Audio Hijack's
   "NowPlaying.txt" file
-- WikiTarget - Creates a text file containing all of the tracks played while
-  trackupdate was running.  The contents are formatted in MediaWiki's table
-  format. 
+- LadioCastTarget - Updates the metadata in Ladiocast using Applescript
+- ListFileTarget - Creates some text files which can easily be pasted into
+  Mediawiki and HTML, and also creates a simple track list text file
+- SlackTarget - Posts track info into a Slack channel
 - TwitterTarget - Posts each track's artist and name to a twitter account
   specified in the .rc file.  Requires that python-twitter is installed
   (http://code.google.com/p/python-twitter/)
