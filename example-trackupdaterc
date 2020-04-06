@@ -11,11 +11,12 @@ stopAlbum: grahams' completely normal radio programme
 
 # these are some initial values to insert into the NowPlaying.txt file.
 # Will be overridden by the first (non-ignoreAlbum'ed) track you play
-[NicecastTarget]
+[AudioHijackTarget]
 enabled: False
 initTitle: Show will begin shortly
 initArtist: grahams
 initAlbum: grahams' completely normal radio programme
+initDestination: ~/Music/Audio Hijack/NowPlaying.txt
 initTime: 9:99
 
 [LadioCastTarget]

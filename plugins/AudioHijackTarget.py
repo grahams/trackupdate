@@ -22,10 +22,10 @@ from Target import Target
 import ConfigParser
 import os
 
-class NicecastTarget(Target):
-    nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')
-    pluginName = "Nicecast Track Updater"
+class AudioHijackTarget(Target):
+    pluginName = "Audio Hijack Track Updater"
 
+    initDestination = "~/Library/Application Support/Audio Hijack/NowPlaying.txt"
     initTitle = ""
     initArtist = ""
     initAlbum = ""
@@ -33,29 +33,32 @@ class NicecastTarget(Target):
 
     def __init__(self, config, episode):
         try:
-            self.initTitle = config.get('NicecastTarget', 'initTitle')
-            self.initArtist = config.get('NicecastTarget', 'initArtist')
-            self.initAlbum = config.get('NicecastTarget', 'initAlbum')
-            self.initTime = config.get('NicecastTarget', 'initTime')
+            self.initTitle = config.get('AudioHijackTarget', 'initTitle')
+            self.initArtist = config.get('AudioHijackTarget', 'initArtist')
+            self.initAlbum = config.get('AudioHijackTarget', 'initAlbum')
+            self.initTime = config.get('AudioHijackTarget', 'initTime')
+            self.initDestination = config.get('AudioHijackTarget', 'initDestination')
         except ConfigParser.NoSectionError:
-            print("NicecastTarget: No [NicecastTarget] section in config")
+            print("AudioHijackTarget: No [AudioHijackTarget] section in config")
             return
         except ConfigParser.NoOptionError:
-            print("NicecastTarget: Missing values in config")
+            print("AudioHijackTarget: Missing values in config")
             return
 
-        fh = open(self.nowPlayingFilePath, 'w')
+        self.initDestination = os.path.expanduser(self.initDestination)
+        fh = open(self.initDestination, 'w')
         fh.write("Title: " + self.initTitle + '\n')
         fh.write("Artist: " + self.initArtist + '\n')
         fh.write("Album: " + self.initAlbum + '\n')
         fh.write("Time: " + self.initTime + '\n')
+        fh.write("Destination: " + self.initDestination + '\n')
         fh.close()
 
     def close(self):
-        os.remove(self.nowPlayingFilePath)
+        os.remove(self.initDestination)
 
     def logTrack(self, title, artist, album, time, startTime):
-        fh = open(self.nowPlayingFilePath, 'w')
+        fh = open(self.initDestination, 'w')
         fh.write("Title: " + title + '\n')
         fh.write("Artist: " + artist + '\n')
         fh.write("Album: " + album + '\n')
