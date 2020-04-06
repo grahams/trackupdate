@@ -49,7 +49,10 @@ class TrackUpdate(object):
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
         print( """
-This is a simple script which polls iTunes every (default) 10 seconds and writes information about the current track to Nicecast's "NowPlaying.txt" file.
+This is a simple script which polls Apple Music for track info every 
+(default) 10 seconds and gives that information to plugin scripts to act 
+upon (for instance, announcing the track information to Slack, or updating
+the metadata in Audio Hijack's Broadcast module)
 
 Arguments:
     -e  --episode     the episode number (optional, used by some plugins)
@@ -193,12 +196,6 @@ Example:
 
     def cleanUp(self):
         logging.debug("Exiting...")
-        # logging.debug("Disabling Archiving")
-
-        # try:
-        #     nc.stop_archiving() 
-        # except (appscript.reference.CommandError):
-        #     logging.error("Nicecast no longer running, unable to stop archiving")
 
         for plugin in pluginList:
             try:

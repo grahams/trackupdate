@@ -43,7 +43,7 @@ OAuthConsumerSecret: <key>
 # plugin.  You will need to open a url (provided by the plugin) and
 # authorize the application WHILE LOGGED IN AS THE TWITTER ACCOUNT YOU WISH
 # TO POST TO!  Once you authorize the application you'll receive a PIN which
-# you will input into nicecast-trackupdate.  Once you have done all this,
+# you will input into trackupdate.  Once you have done all this,
 # the following two config values will be written to the screen.  Copy them
 # into this file and you'll never have to deal with this OAuth nonsense
 # again (i hope)

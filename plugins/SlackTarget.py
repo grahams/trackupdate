@@ -25,7 +25,6 @@ import string
 import subprocess
 
 class SlackTarget(Target):
-    nowPlayingFilePath = os.path.expanduser('~/Library/Application Support/Nicecast/NowPlaying.txt')
     pluginName = "Slack Track Updater"
 
     # config values
