@@ -23,6 +23,7 @@ from Target import Target
 import os
 import sys
 
+import time
 import datetime
 from datetime import date
 
@@ -36,6 +37,8 @@ class ListFileTarget(Target):
     wikiFileContents = ""
     blogFileContents = ""
     trackListContents = ""
+
+    initialTime = None
     
     def __init__(self, config, episode):
         self.episodeNumber = episode
@@ -112,13 +115,16 @@ class ListFileTarget(Target):
     def initTracklistFile(self, config, episode):
         return
 
-    def logTrack(self, title, artist, album, time, startTime):
-        self.logWikiTrack(title, artist, album, time, startTime)
-        self.logBlogTrack(title, artist, album, time, startTime)
-        self.logTracklistTrack(title, artist, album, time, startTime)
+    def logTrack(self, title, artist, album, length, startTime):
+        if(self.initialTime == None):
+            self.initialTime = time.time()
+
+        self.logWikiTrack(title, artist, album, length, startTime)
+        self.logBlogTrack(title, artist, album, length, startTime)
+        self.logTracklistTrack(title, artist, album, length, startTime)
         return
 
-    def logWikiTrack(self, title, artist, album, time, startTime):
+    def logWikiTrack(self, title, artist, album, length, startTime):
         self.wikiFileContents += "|" + title + '\n'
     	self.wikiFileContents += "|" + artist + '\n'
     	self.wikiFileContents += "|" + album + '\n'
@@ -126,7 +132,7 @@ class ListFileTarget(Target):
 
         return
 
-    def logBlogTrack(self, title, artist, album, time, startTime):
+    def logBlogTrack(self, title, artist, album, length, startTime):
         self.blogFileContents += "<tr>"
         self.blogFileContents += "<td>" + title + "</td>"
         self.blogFileContents += "<td>" + artist + "</td>"
@@ -135,8 +141,15 @@ class ListFileTarget(Target):
 
         return
 
-    def logTracklistTrack(self, title, artist, album, time, startTime):
-        self.trackListContents += artist + " - " + title + "\n"
+    def logTracklistTrack(self, title, artist, album, length, startTime):
+        # compute the time since the start of the show
+        tDelta = str(datetime.timedelta(seconds=round(time.time() -
+                                                 self.initialTime)))
+
+        self.trackListContents += artist 
+        self.trackListContents += " - " + title 
+        self.trackListContents += " - " + tDelta + "\n"
+
         return
 
     def close(self):
