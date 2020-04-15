@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from Target import Target
-import ConfigParser
+import configparser
 import os
 
 class AudioHijackTarget(Target):
@@ -38,29 +38,28 @@ class AudioHijackTarget(Target):
             self.initAlbum = config.get('AudioHijackTarget', 'initAlbum')
             self.initTime = config.get('AudioHijackTarget', 'initTime')
             self.initDestination = config.get('AudioHijackTarget', 'initDestination')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             print("AudioHijackTarget: No [AudioHijackTarget] section in config")
             return
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             print("AudioHijackTarget: Missing values in config")
             return
 
         self.initDestination = os.path.expanduser(self.initDestination)
-        fh = open(self.initDestination, 'w')
-        fh.write("Title: " + self.initTitle + '\n')
-        fh.write("Artist: " + self.initArtist + '\n')
-        fh.write("Album: " + self.initAlbum + '\n')
-        fh.write("Time: " + self.initTime + '\n')
-        fh.write("Destination: " + self.initDestination + '\n')
-        fh.close()
+
+        self.logTrack(self.initTitle, 
+                      self.initArtist, 
+                      self.initAlbum,
+                      self.initTime,
+                      None)
 
     def close(self):
         os.remove(self.initDestination)
 
     def logTrack(self, title, artist, album, time, startTime):
         fh = open(self.initDestination, 'w')
-        fh.write("Title: " + title + '\n')
-        fh.write("Artist: " + artist + '\n')
-        fh.write("Album: " + album + '\n')
-        fh.write("Time: " + time + '\n')
+        fh.write(f"Title: {title}\n")
+        fh.write(f"Artist: {artist}\n")
+        fh.write(f"Album: {album}\n")
+        fh.write(f"Time: {time}\n")
         fh.close()

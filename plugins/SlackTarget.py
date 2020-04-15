@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from Target import Target
-import ConfigParser
+import configparser
 import os
 import string
 import subprocess
@@ -40,10 +40,10 @@ class SlackTarget(Target):
             self.slackWebHookUrl = config.get('SlackTarget', 'webhookURL')
             self.slackEmoji = config.get('SlackTarget', 'emojiName')
             self.slackAnnouncementPrefix = config.get('SlackTarget', 'announcementPrefix')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             print("SlackTarget: No [SlackTarget] section in config")
             return
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             print("SlackTarget: Missing values in config")
             return
 
@@ -52,10 +52,10 @@ class SlackTarget(Target):
 
     def logTrack(self, title, artist, album, time, startTime):
         #make sure the title and artist don't have an apostrophe or quote in them
-        theTitle=string.replace(title, "\'", "\u0027")
-        theTitle=string.replace(theTitle, "\'", "\u0022")
-        theArtist=string.replace(artist, "\'", "\u0027")
-        theArtist=string.replace(theArtist, "\"", "\u0022")
+        theTitle=title.replace("\'", "\u0027")
+        theTitle=theTitle.replace("\'", "\u0022")
+        theArtist=artist.replace("\'", "\u0027")
+        theArtist=theArtist.replace("\"", "\u0022")
         theTrackString = "_%s_ by %s" % (theTitle, theArtist)
         thePayload = self.theJSONPayload % (self.slackChannel, self.slackAnnouncementPrefix, theTrackString, self.slackEmoji)
         theArgument = "curl -s -X POST --data-urlencode 'payload=%s'  %s" % (thePayload, self.slackWebHookUrl)

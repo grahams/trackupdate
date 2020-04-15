@@ -19,7 +19,7 @@
 # IN THE SOFTWARE.
 
 from Target import Target
-import ConfigParser
+import configparser
 
 # Since the user may not have python-twitter installed, and I didn't want it
 # to fail ugly in that case, we do some exception handling
@@ -48,10 +48,10 @@ class TwitterTarget(Target):
             try:
                 self.OAuthConsumerKey = config.get('TwitterTarget', 'OAuthConsumerKey')
                 self.OAuthConsumerSecret = config.get('TwitterTarget', 'OAuthConsumerSecret')
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 print("TwitterTarget: No [TwitterTarget] section in config")
                 return
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 print("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
                 return
 
@@ -60,10 +60,10 @@ class TwitterTarget(Target):
             try:
                 self.OAuthUserToken = config.get('TwitterTarget', 'OAuthUserToken')
                 self.OAuthUserTokenSecret = config.get('TwitterTarget', 'OAuthUserTokenSecret')
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 print("TwitterTarget: No [TwitterTarget] section in config")
                 return
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 print("TwitterTarget: Need to obtain OAuth Authorization.")
                 self.obtainAuth()
 
@@ -71,18 +71,18 @@ class TwitterTarget(Target):
             # sent on init
             try:
                 self.initTweet = config.get('TwitterTarget', 'initTweet')
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 pass
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 pass
 
             # this is an optional config value containing a tweet to be 
             # sent on close
             try:
                 self.closeTweet = config.get('TwitterTarget', 'closeTweet')
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 pass
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 pass
 
             self.t = twitter.Api(consumer_key=self.OAuthConsumerKey, 
@@ -95,7 +95,7 @@ class TwitterTarget(Target):
                 try:
                     self.t.PostUpdate(self.initTweet)
                 except twitter.TwitterError:
-                    print "twitter error"
+                    print("twitter error")
         return
 
     def close(self):
@@ -106,7 +106,7 @@ class TwitterTarget(Target):
                     try:
                         self.t.PostUpdate(self.closeTweet)
                     except twitter.TwitterError:
-                        print "twitter error"
+                        print("twitter error")
                 return
 
     def logTrack(self, title, artist, album, time, startTime):
@@ -120,7 +120,7 @@ class TwitterTarget(Target):
                     else:
                         self.t.PostUpdate(tweet)
                 except twitter.TwitterError:
-                    print "twitter error"
+                    print("twitter error")
 
     def obtainAuth(self):
         import urlparse
@@ -146,18 +146,18 @@ class TwitterTarget(Target):
 
         request_token = dict(urlparse.parse_qsl(content))
 
-        print "Request Token:"
-        print "    - oauth_token        = %s" % request_token['oauth_token']
-        print "    - oauth_token_secret = %s" % request_token['oauth_token_secret']
-        print 
+        print("Request Token:")
+        print(f"    - oauth_token        = {request_token['oauth_token']}")
+        print(f"    - oauth_token_secret = {request_token['oauth_token_secret']}")
+        print("\n")
 
         # Step 2: Redirect to the provider. Since this is a CLI script we do not 
         # redirect. In a web application you would redirect the user to the URL
         # below.
 
-        print "Go to the following link in your browser:"
-        print "%s?oauth_token=%s" % (authorize_url, request_token['oauth_token'])
-        print 
+        print("Go to the following link in your browser:")
+        print(f"{authorize_url}?oauth_token={request_token['oauth_token']}")
+        print("\n")
 
         # After the user has granted access to you, the consumer, the provider will
         # redirect you to whatever URL you have told them to redirect to. You can 

@@ -22,6 +22,7 @@ from Target import Target
 
 import os
 import sys
+import configparser
 
 import time
 import datetime
@@ -47,10 +48,10 @@ class ListFileTarget(Target):
         try:
             self.filePath = config.get('ListFileTarget', 'filePath')
             self.archiveURL = config.get('ListFileTarget', 'archiveURL')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             print("ListFileTarget: No [ListFileTarget] section in config")
             return
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             print("ListFileTarget: Missing values in config")
             return
 
@@ -105,13 +106,13 @@ class ListFileTarget(Target):
 
         headerText += '<table border="1" cellspacing="0" cellpadding="5">'
 
-	headerText += "<tbody>"
+        headerText += "<tbody>"
 
-	headerText += "<tr>"
-	headerText += "<td><b>Song</b></td>"
-	headerText += "<td><b>Artist</b></td>"
-	headerText += "<td><b>Album</b></td>"
-	headerText += "</tr>"
+        headerText += "<tr>"
+        headerText += "<td><b>Song</b></td>"
+        headerText += "<td><b>Artist</b></td>"
+        headerText += "<td><b>Album</b></td>"
+        headerText += "</tr>"
 
         self.blogFile = open(self.filePath + fileDate + "-blog.txt", 'w+')
         self.logToFile(self.blogFile, headerText)
@@ -132,22 +133,19 @@ class ListFileTarget(Target):
         return
 
     def logWikiTrack(self, title, artist, album, length, startTime):
-        trackText = "|" + title + '\n'
-    	trackText += "|" + artist + '\n'
-    	trackText += "|" + album + '\n'
-    	trackText += "|-\n"
+        trackText = f"|{title}\n|{artist}\n|{album}\n|-\n"
 
         self.logToFile(self.wikiFile, trackText)
 
         return
 
     def logBlogTrack(self, title, artist, album, length, startTime):
-        trackText = "<tr>"
-        trackText += "<tr>"
-        trackText += "<td>" + title + "</td>"
-        trackText += "<td>" + artist + "</td>"
-        trackText += "<td>" + album + "</td>"
-        trackText += "</tr>"
+        trackText = (f"<tr>\n"
+                    f"<td>{title}</td>"
+                    f"<td>{artist}</td>"
+                    f"<td>{album}</td>"
+                    f"</tr>")
+
 
         self.logToFile(self.blogFile, trackText)
         return
@@ -157,9 +155,7 @@ class ListFileTarget(Target):
         tDelta = str(datetime.timedelta(seconds=round(time.time() -
                                                  self.initialTime)))
 
-        trackText = artist 
-        trackText += " - " + title 
-        trackText += " - " + tDelta + "\n"
+        trackText = f"{artist} - {title} - {tDelta}\n"
 
         self.logToFile(self.trackListFile, trackText)
 
@@ -185,7 +181,7 @@ class ListFileTarget(Target):
         self.logToFile(self.blogFile, "</table>")
 
         self.blogFile.close()
-	
+        
         return
 
     def closeTrackListFile(self, fileDate):

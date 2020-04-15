@@ -32,4 +32,4 @@ class StdioTarget(Target):
         return
 
     def logTrack(self, title, artist, album, time, startTime):
-        print artist + " - " + title
+        print(f"{artist} - {title}")

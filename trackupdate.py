@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 # Copyright (c) 2009-2014 Sean M. Graham <www.sean-graham.com>
 # 
@@ -24,7 +24,7 @@ import os
 import time
 import sys
 import getopt
-import ConfigParser
+import configparser
 import glob
 import logging
 import subprocess
@@ -69,18 +69,10 @@ Example:
         logging.basicConfig(level=logging.WARNING)
 
         # process config file
-        #STH 2017-0524 the following wouldn't actually catch whether .trackupdaterc
-        #is missing, and wouldn't see whether it had a [trackupdate] section
-        # try:
-        #     config = ConfigParser.ConfigParser()
-        #     config.read(os.path.expanduser('~/.trackupdaterc'))
-        # except ConfigParser.MissingSectionHeaderError:
-        #     logging.warning("Warning: Invalid config file, no [trackupdate] section.")
-        #     raise
         if not os.path.isfile(os.path.expanduser('~/.trackupdaterc')):
             logging.warning("Warning: no config .trackupdaterc file.")
 
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(os.path.expanduser('~/.trackupdaterc'))
 
         try:
@@ -90,10 +82,10 @@ Example:
             self.stopTitle = config.get('trackupdate', 'stopTitle')
             self.stopArtist = config.get('trackupdate', 'stopArtist')
             self.stopAlbum = config.get('trackupdate', 'stopAlbum')
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             logging.warning("Warning: Invalid config file, no [trackupdate] section.")
             pass
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             print("[trackupdate]: Missing values in config")
             return
 
@@ -103,7 +95,7 @@ Example:
             try:
                 opts, args = getopt.getopt(sys.argv[1:], "h:e:t:v", ["help",
                                            "episode=", "polltime=", "verbose"])
-            except getopt.GetoptError, err:
+            except (getopt.GetoptError) as err:
                 # print help information and exit:
                 logging.error(str(err)) # will print something like 
                                         # "option -a not recognized"
@@ -177,7 +169,8 @@ Example:
                 #     self.startTime=time.time()		
 
                 track = json.loads(subprocess.check_output(["osascript",
-                                     "Automation/GetCurrentTrackJSON.scpt"]))
+                                     "Automation/GetCurrentTrackJSON.scpt"],
+                                                           text=True))
 
                 if(len(track) > 0):
                     self.processCurrentTrack(track)
@@ -198,26 +191,26 @@ Example:
         logging.debug("Exiting...")
 
         for plugin in pluginList:
-            try:
-                pluginList[plugin].close()
-            except:
-                logging.error(plugin + ": Error trying to close target")
+            # try:
+            pluginList[plugin].close()
+            # except:
+            #     logging.error(plugin + ": Error trying to close target")
     
 
     def processCurrentTrack(self, t):
-        iArtist = u""
-        iName = u""
-        iAlbum = u""
-        iTime = u""
+        iArtist = ""
+        iName = ""
+        iAlbum = ""
+        iTime = ""
 
         if('artist' in t.keys()):
-            iArtist = t['artist'].encode('utf-8');
+            iArtist = t['artist']
         if('name' in t.keys()):
-            iName = t['name'].encode('utf-8');
+            iName = t['name']
         if('album' in t.keys()):
-            iAlbum = t['album'].encode('utf-8');
+            iAlbum = t['album']
         if('time' in t.keys()):
-            iTime = t['time'].encode('utf-8');
+            iTime = t['time']
 
         self.updateTrack(iName, iArtist, iAlbum, 
                          iTime, self.startTime)
@@ -231,11 +224,11 @@ Example:
             self.trackTime = time
 
             for plugin in pluginList:
-                try:
-                    pluginList[plugin].logTrack(name, artist, album,    
+                # try:
+                pluginList[plugin].logTrack(name, artist, album,    
                                                 time, startTime)
-                except:
-                    logging.error(plugin + ": Error trying to update track")
+                # except:
+                #     logging.error(plugin + ": Error trying to update track")
         
 
     def loadPlugins(self, config, episode):
@@ -253,9 +246,9 @@ Example:
             # if the .rc doesn't define whether it is enabled, defaults to False
             try:
                 enabled = config.get(className, 'enabled')
-            except ConfigParser.NoSectionError:
+            except configparser.NoSectionError:
                 enabled = 'False'
-            except ConfigParser.NoOptionError:
+            except configparser.NoOptionError:
                 enabled = 'False'
 
             if(enabled=='False'):
