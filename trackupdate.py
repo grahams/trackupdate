@@ -205,19 +205,19 @@ Example:
     
 
     def processCurrentTrack(self, t):
-        iArtist = ""
-        iName = ""
-        iAlbum = ""
-        iTime = ""
+        iArtist = u""
+        iName = u""
+        iAlbum = u""
+        iTime = u""
 
         if('artist' in t.keys()):
-            iArtist = t['artist']
+            iArtist = t['artist'].encode('utf-8');
         if('name' in t.keys()):
-            iName = t['name']
+            iName = t['name'].encode('utf-8');
         if('album' in t.keys()):
-            iAlbum = t['album']
+            iAlbum = t['album'].encode('utf-8');
         if('time' in t.keys()):
-            iTime = t['time']
+            iTime = t['time'].encode('utf-8');
 
         self.updateTrack(iName, iArtist, iAlbum, 
                          iTime, self.startTime)
