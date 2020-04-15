@@ -34,9 +34,9 @@ class ListFileTarget(Target):
     filePath = ""
     archiveURL = ""
 
-    wikiFileContents = ""
-    blogFileContents = ""
-    trackListContents = ""
+    wikiFile = None
+    blogFile = None
+    trackListFile = None
 
     initialTime = None
     
@@ -64,55 +64,62 @@ class ListFileTarget(Target):
 
         self.archiveURL = date.today().strftime(self.archiveURL)
 
-        self.initWikiFile(config, episode)
-        self.initBlogFile(config, episode)
-        self.initTracklistFile(config, episode)
+        fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=datetime.datetime.now())
 
-    def initWikiFile(self, config, episode):
-        text = ""
+        self.initWikiFile(config, episode, fileDate)
+        self.initBlogFile(config, episode, fileDate)
+        self.initTrackListFile(config, episode, fileDate)
 
-        text += "\n\n=== "
+    def initWikiFile(self, config, episode, fileDate):
+        headerText = ""
 
-        if(self.archiveURL != ""):
-            text += "[" + self.archiveURL + " "
-
-        text += "Show #" + self.episodeNumber + " - "
-
-        text += self.createLongDate()
+        headerText += "\n\n=== "
 
         if(self.archiveURL != ""):
-            text += "]"
+            headerText += "[" + self.archiveURL + " "
 
-        text += " ===\n"
+        headerText += "Show #" + self.episodeNumber + " - "
 
-        text += "{| border=1 cellspacing=0 cellpadding=5\n"
-        text += "|'''Song'''\n"
-        text += "|'''Artist'''\n"
-        text += "|'''Album'''\n"
-        text += "|-\n"
+        headerText += self.createLongDate()
 
-        self.wikiFileContents = text
+        if(self.archiveURL != ""):
+            headerText += "]"
+
+        headerText += " ===\n"
+
+        headerText += "{| border=1 cellspacing=0 cellpadding=5\n"
+        headerText += "|'''Song'''\n"
+        headerText += "|'''Artist'''\n"
+        headerText += "|'''Album'''\n"
+        headerText += "|-\n"
+
+        self.wikiFile = open(self.filePath + fileDate + "-wiki.txt", 'w+')
+        self.logToFile(self.wikiFile, headerText)
 
         return
 
-    def initBlogFile(self, config, episode):
-        self.blogFileContents = "Subject: " + self.createLongDate() + "\n"
-        self.blogFileContents += "Archive URL: " + self.archiveURL + "\n"
-        self.blogFileContents += "---\n"
+    def initBlogFile(self, config, episode, fileDate):
+        headerText = "Subject: " + self.createLongDate() + "\n"
+        headerText += "Archive URL: " + self.archiveURL + "\n"
+        headerText += "---\n"
 
-        self.blogFileContents += '<table border="1" cellspacing="0" cellpadding="5">'
-	
-	self.blogFileContents += "<tbody>"
+        headerText += '<table border="1" cellspacing="0" cellpadding="5">'
 
-	self.blogFileContents += "<tr>"
-	self.blogFileContents += "<td><b>Song</b></td>"
-	self.blogFileContents += "<td><b>Artist</b></td>"
-	self.blogFileContents += "<td><b>Album</b></td>"
-	self.blogFileContents += "</tr>"
+	headerText += "<tbody>"
+
+	headerText += "<tr>"
+	headerText += "<td><b>Song</b></td>"
+	headerText += "<td><b>Artist</b></td>"
+	headerText += "<td><b>Album</b></td>"
+	headerText += "</tr>"
+
+        self.blogFile = open(self.filePath + fileDate + "-blog.txt", 'w+')
+        self.logToFile(self.blogFile, headerText)
 
         return
 
-    def initTracklistFile(self, config, episode):
+    def initTrackListFile(self, config, episode, fileDate):
+        self.trackListFile = open(self.filePath + fileDate + "-list.txt", 'w+')
         return
 
     def logTrack(self, title, artist, album, length, startTime):
@@ -121,34 +128,40 @@ class ListFileTarget(Target):
 
         self.logWikiTrack(title, artist, album, length, startTime)
         self.logBlogTrack(title, artist, album, length, startTime)
-        self.logTracklistTrack(title, artist, album, length, startTime)
+        self.logTrackListTrack(title, artist, album, length, startTime)
         return
 
     def logWikiTrack(self, title, artist, album, length, startTime):
-        self.wikiFileContents += "|" + title + '\n'
-    	self.wikiFileContents += "|" + artist + '\n'
-    	self.wikiFileContents += "|" + album + '\n'
-    	self.wikiFileContents += "|-\n"
+        trackText = "|" + title + '\n'
+    	trackText += "|" + artist + '\n'
+    	trackText += "|" + album + '\n'
+    	trackText += "|-\n"
+
+        self.logToFile(self.wikiFile, trackText)
 
         return
 
     def logBlogTrack(self, title, artist, album, length, startTime):
-        self.blogFileContents += "<tr>"
-        self.blogFileContents += "<td>" + title + "</td>"
-        self.blogFileContents += "<td>" + artist + "</td>"
-        self.blogFileContents += "<td>" + album + '</td>'
-        self.blogFileContents += "</tr>"
+        trackText = "<tr>"
+        trackText += "<tr>"
+        trackText += "<td>" + title + "</td>"
+        trackText += "<td>" + artist + "</td>"
+        trackText += "<td>" + album + "</td>"
+        trackText += "</tr>"
 
+        self.logToFile(self.blogFile, trackText)
         return
 
-    def logTracklistTrack(self, title, artist, album, length, startTime):
+    def logTrackListTrack(self, title, artist, album, length, startTime):
         # compute the time since the start of the show
         tDelta = str(datetime.timedelta(seconds=round(time.time() -
                                                  self.initialTime)))
 
-        self.trackListContents += artist 
-        self.trackListContents += " - " + title 
-        self.trackListContents += " - " + tDelta + "\n"
+        trackText = artist 
+        trackText += " - " + title 
+        trackText += " - " + tDelta + "\n"
+
+        self.logToFile(self.trackListFile, trackText)
 
         return
 
@@ -159,34 +172,24 @@ class ListFileTarget(Target):
 
         self.closeWikiFile(fileDate)
         self.closeBlogFile(fileDate)
-        self.closeTracklistFile(fileDate)
+        self.closeTrackListFile(fileDate)
 
     def closeWikiFile(self, fileDate):
-	self.wikiFileContents += "|}"
-
-        fh = open(self.filePath + fileDate + "-wiki.txt", 'w+')
-
-        fh.write(self.wikiFileContents)
-        fh.close()
+        self.logToFile(self.wikiFile, "|}" )
+        self.wikiFile.close()
 
         return
 
     def closeBlogFile(self, fileDate):
-        self.blogFileContents += "</tbody>"
-        self.blogFileContents += "</table>"
+        self.logToFile(self.blogFile, "</tbody>")
+        self.logToFile(self.blogFile, "</table>")
 
-        fh = open(self.filePath + fileDate + "-blog.txt", 'w+')
-
-        fh.write(self.blogFileContents)
-        fh.close()
+        self.blogFile.close()
 	
         return
 
-    def closeTracklistFile(self, fileDate):
-        fh = open(self.filePath + fileDate + "-list.txt", 'w+')
-
-        fh.write(self.trackListContents)
-        fh.close()
+    def closeTrackListFile(self, fileDate):
+        self.trackListFile.close()
 
         return
 
@@ -203,3 +206,9 @@ class ListFileTarget(Target):
         text = ('{dt:%B} {dt.day}' + suffix + ', {dt.year}').format(dt=datetime.datetime.now())
 
         return text
+
+    def logToFile(self, fh, text):
+        fh.write(text)
+
+        fh.flush()
+        os.fsync(fh.fileno())
