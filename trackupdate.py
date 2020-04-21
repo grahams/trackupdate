@@ -133,9 +133,6 @@ Example:
 
         try:
             if(self.introAlbum != ""):
-            #     logging.debug("Disabling Archiving until intro over")
-            #     nc.stop_archiving() 
-
                 while(1):
                     if(self.startTime==-1):
                         track = json.loads(subprocess.check_output(["osascript",
@@ -191,10 +188,10 @@ Example:
         logging.debug("Exiting...")
 
         for plugin in pluginList:
-            # try:
-            pluginList[plugin].close()
-            # except:
-            #     logging.error(plugin + ": Error trying to close target")
+            try:
+                pluginList[plugin].close()
+            except:
+                logging.error(plugin + ": Error trying to close target")
     
 
     def processCurrentTrack(self, t):
@@ -224,11 +221,11 @@ Example:
             self.trackTime = time
 
             for plugin in pluginList:
-                # try:
-                pluginList[plugin].logTrack(name, artist, album,    
+                try:
+                    pluginList[plugin].logTrack(name, artist, album,    
                                                 time, startTime)
-                # except:
-                #     logging.error(plugin + ": Error trying to update track")
+                except:
+                    logging.error(plugin + ": Error trying to update track")
         
 
     def loadPlugins(self, config, episode):
