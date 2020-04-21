@@ -146,25 +146,11 @@ Example:
                         if((len(track) == 0) or (album == self.introAlbum)):
                             time.sleep(self.pollTime)
                         else:
-                            # logging.debug("Enabling Archiving")
-                            # nc.start_archiving() 
                             break
                     else:
-                        # logging.debug("Enabling Archiving")
-                        # nc.start_archiving() 
                         break
-            # else:
-            #     logging.debug("Enabling Archiving")
-            #     nc.start_archiving() 
 
             while(1):
-                # if((it.player_state() == k.playing) and 
-                #    (nc.archiving()) and 
-                #    (nc.broadcasting()) and 
-                #    (self.startTime==-1)):
-                #     # don't start the timeline until the intro is over
-                #     self.startTime=time.time()		
-
                 track = json.loads(subprocess.check_output(["osascript",
                                      "Automation/GetCurrentTrackJSON.scpt"],
                                                            text=True))
