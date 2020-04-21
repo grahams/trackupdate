@@ -135,8 +135,13 @@ Example:
             if(self.introAlbum != ""):
                 while(1):
                     if(self.startTime==-1):
-                        track = json.loads(subprocess.check_output(["osascript",
-                                             "Automation/GetCurrentTrackJSON.scpt"]))
+                        try:
+                            track = json.loads(subprocess.check_output(["osascript",
+                                                "Automation/GetCurrentTrackJSON.scpt"]))
+                        except subprocess.CalledProcessError:
+                            print("osascript failed, skipping")
+                            continue
+
                         album = None
 
                         if('album' in track.keys()):
