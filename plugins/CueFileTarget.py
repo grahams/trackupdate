@@ -38,7 +38,7 @@ class CueFileTarget(Target):
 
     trackCount = 0
     initialTime = None
-    
+
     def __init__(self, config, episode):
         # read config entries
         try:
