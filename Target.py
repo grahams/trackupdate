@@ -18,6 +18,10 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import os
+import datetime
+from datetime import date
+
 class Target(object):
     pluginName = "Base Class"
 
@@ -34,3 +38,24 @@ class Target(object):
         print("artist: " + artist)
         print("album: " + album)
         print("time: " + time)
+
+    def createLongDate(self):
+        text = ""
+
+        # compute the suffix
+        day = date.today().day
+        if 4 <= day <= 20 or 24 <= day <= 30:
+            suffix = "th"
+        else:
+            suffix = ["st", "nd", "rd"][day % 10 - 1]
+
+        text = ('{dt:%B} {dt.day}' + suffix + ', {dt.year}').format(dt=datetime.datetime.now())
+
+        return text
+
+    def logToFile(self, fh, text):
+        fh.write(text)
+
+        fh.flush()
+        os.fsync(fh.fileno())
+
