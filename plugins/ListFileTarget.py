@@ -155,7 +155,7 @@ class ListFileTarget(Target):
         tDelta = str(datetime.timedelta(seconds=round(time.time() -
                                                  self.initialTime)))
 
-        trackText = f"{artist} - {title} - {tDelta}\n"
+        trackText = f"{artist} - {title} ({tDelta})\n"
 
         self.logToFile(self.trackListFile, trackText)
 
@@ -177,7 +177,7 @@ class ListFileTarget(Target):
         return
 
     def closeBlogFile(self, fileDate):
-        self.logToFile(self.blogFile, "</tbody>")
+        self.logToFile(self.blogFile, "\n</tbody>")
         self.logToFile(self.blogFile, "</table>")
 
         self.blogFile.close()
