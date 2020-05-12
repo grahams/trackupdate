@@ -50,15 +50,16 @@ class SlackTarget(Target):
     def close(self):
         return
 
-    def logTrack(self, title, artist, album, time, startTime):
+    def logTrack(self, title, artist, album, time, startTime, ignore):
         #make sure the title and artist don't have an apostrophe or quote in them
-        theTitle=title.replace("\'", "\u0027")
-        theTitle=theTitle.replace("\'", "\u0022")
-        theArtist=artist.replace("\'", "\u0027")
-        theArtist=theArtist.replace("\"", "\u0022")
-        theTrackString = "_%s_ by %s" % (theTitle, theArtist)
-        thePayload = self.theJSONPayload % (self.slackChannel, self.slackAnnouncementPrefix, theTrackString, self.slackEmoji)
-        theArgument = "curl -s -X POST --data-urlencode 'payload=%s'  %s" % (thePayload, self.slackWebHookUrl)
-        subprocess.check_output(theArgument, shell=True)
+        if( ignore is not True):
+            theTitle=title.replace("\'", "\u0027")
+            theTitle=theTitle.replace("\'", "\u0022")
+            theArtist=artist.replace("\'", "\u0027")
+            theArtist=theArtist.replace("\"", "\u0022")
+            theTrackString = "_%s_ by %s" % (theTitle, theArtist)
+            thePayload = self.theJSONPayload % (self.slackChannel, self.slackAnnouncementPrefix, theTrackString, self.slackEmoji)
+            theArgument = "curl -s -X POST --data-urlencode 'payload=%s'  %s" % (thePayload, self.slackWebHookUrl)
+            subprocess.check_output(theArgument, shell=True)
 
 

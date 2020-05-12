@@ -45,6 +45,7 @@ class TrackUpdate(object):
     stopTitle = ""
     stopArtist = ""
     stopAlbum = ""
+    ignoreAlbum = None
 
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
@@ -82,6 +83,7 @@ Example:
             self.stopTitle = config.get('trackupdate', 'stopTitle')
             self.stopArtist = config.get('trackupdate', 'stopArtist')
             self.stopAlbum = config.get('trackupdate', 'stopAlbum')
+            self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
         except configparser.NoSectionError:
             logging.warning("Warning: Invalid config file, no [trackupdate] section.")
             pass
@@ -211,10 +213,15 @@ Example:
             self.trackAlbum = album
             self.trackTime = time
 
+            ignore = False
+
+            if( album == self.ignoreAlbum ):
+                ignore = True
+
             for plugin in pluginList:
                 try:
                     pluginList[plugin].logTrack(name, artist, album,    
-                                                time, startTime)
+                                                time, startTime, ignore)
                 except:
                     logging.error(plugin + ": Error trying to update track")
         

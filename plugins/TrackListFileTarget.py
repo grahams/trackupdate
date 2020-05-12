@@ -61,17 +61,18 @@ class TrackListFileTarget(Target):
         self.trackListFile = open(self.filePath + fileDate + "-list.txt", 'w+')
         return
 
-    def logTrack(self, title, artist, album, length, startTime):
+    def logTrack(self, title, artist, album, length, startTime, ignore):
         if(self.initialTime == None):
             self.initialTime = time.time()
 
-        # compute the time since the start of the show
-        tDelta = str(datetime.timedelta(seconds=round(time.time() -
-                                                 self.initialTime)))
+        if( ignore is not True):
+            # compute the time since the start of the show
+            tDelta = str(datetime.timedelta(seconds=round(time.time() -
+                                                    self.initialTime)))
 
-        trackText = f"{artist} - {title} ({tDelta})\n"
+            trackText = f"{artist} - {title} ({tDelta})\n"
 
-        self.logToFile(self.trackListFile, trackText)
+            self.logToFile(self.trackListFile, trackText)
 
         return
 

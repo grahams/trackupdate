@@ -109,18 +109,19 @@ class TwitterTarget(Target):
                         print("twitter error")
                 return
 
-    def logTrack(self, title, artist, album, time, startTime):
-        if( importSuccessful == True ):
-            if( self.t != None ):
-                tweet = artist + " - " + title
+    def logTrack(self, title, artist, album, time, startTime, ignore):
+        if( ignore is not True):
+            if( importSuccessful == True ):
+                if( self.t != None ):
+                    tweet = artist + " - " + title
 
-                try:
-                    if( len(tweet) > 140 ):
-                        self.t.PostUpdate(tweet[0:140])
-                    else:
-                        self.t.PostUpdate(tweet)
-                except twitter.TwitterError:
-                    print("twitter error")
+                    try:
+                        if( len(tweet) > 140 ):
+                            self.t.PostUpdate(tweet[0:140])
+                        else:
+                            self.t.PostUpdate(tweet)
+                    except twitter.TwitterError:
+                        print("twitter error")
 
     def obtainAuth(self):
         import urlparse

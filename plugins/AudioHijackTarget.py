@@ -51,12 +51,12 @@ class AudioHijackTarget(Target):
                       self.initArtist, 
                       self.initAlbum,
                       self.initTime,
-                      None)
+                      None, None)
 
     def close(self):
         os.remove(self.initDestination)
 
-    def logTrack(self, title, artist, album, time, startTime):
+    def logTrack(self, title, artist, album, time, startTime, ignore):
         fh = open(self.initDestination, 'w')
         fh.write(f"Title: {title}\n")
         fh.write(f"Artist: {artist}\n")

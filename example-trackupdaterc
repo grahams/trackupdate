@@ -9,6 +9,10 @@ stopTitle: grahams' completely normal radio programme
 stopArtist: grahams
 stopAlbum: grahams' completely normal radio programme
 
+# if the album title matches, the `ignore` parameter to `logTrack` will be
+# True
+ignoreAlbum: Radio Programme
+
 # these are some initial values to insert into the NowPlaying.txt file.
 # Will be overridden by the first (non-ignoreAlbum'ed) track you play
 [AudioHijackTarget]

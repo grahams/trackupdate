@@ -72,25 +72,26 @@ class CueFileTarget(Target):
 
         return
 
-    def logTrack(self, title, artist, album, length, startTime):
+    def logTrack(self, title, artist, album, length, startTime, ignore):
         if(self.initialTime == None):
             self.initialTime = time.time()
 
-        # compute the time since the start of the show
-        tDelta = datetime.timedelta(seconds=round(time.time() -
-                                                 self.initialTime))
+        if( ignore is not True):
+            # compute the time since the start of the show
+            tDelta = datetime.timedelta(seconds=round(time.time() -
+                                                    self.initialTime))
 
-        minutes = int(tDelta.total_seconds() / 60)
-        seconds = int(tDelta.total_seconds() % 60)
+            minutes = int(tDelta.total_seconds() / 60)
+            seconds = int(tDelta.total_seconds() % 60)
 
-        self.trackCount += 1
+            self.trackCount += 1
 
-        trackText = (f"  TRACK {self.trackCount:02} AUDIO\n"
-                     f'    TITLE "{title}"\n'
-                     f'    PERFORMER "{artist}"\n'
-                     f'    INDEX 01 {minutes:02}:{seconds:02}:00\n')
+            trackText = (f"  TRACK {self.trackCount:02} AUDIO\n"
+                        f'    TITLE "{title}"\n'
+                        f'    PERFORMER "{artist}"\n'
+                        f'    INDEX 01 {minutes:02}:{seconds:02}:00\n')
 
-        self.logToFile(self.cueFile, trackText)
+            self.logToFile(self.cueFile, trackText)
 
         return
 
