@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Sean T. Hammond
+# Copyright (c) 2017-2020 Sean T. Hammond, Sean M. Graham
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to
@@ -23,6 +23,8 @@ import configparser
 import os
 import string
 import subprocess
+import json
+import requests
 
 class SlackTarget(Target):
     pluginName = "Slack Track Updater"
@@ -51,15 +53,10 @@ class SlackTarget(Target):
         return
 
     def logTrack(self, title, artist, album, time, startTime, ignore):
-        #make sure the title and artist don't have an apostrophe or quote in them
         if( ignore is not True):
-            theTitle=title.replace("\'", "\u0027")
-            theTitle=theTitle.replace("\'", "\u0022")
-            theArtist=artist.replace("\'", "\u0027")
-            theArtist=theArtist.replace("\"", "\u0022")
-            theTrackString = "_%s_ by %s" % (theTitle, theArtist)
-            thePayload = self.theJSONPayload % (self.slackChannel, self.slackAnnouncementPrefix, theTrackString, self.slackEmoji)
-            theArgument = "curl -s -X POST --data-urlencode 'payload=%s'  %s" % (thePayload, self.slackWebHookUrl)
-            subprocess.check_output(theArgument, shell=True)
+            payload = {'channel': self.slackChannel,
+                       'username': self.slackAnnouncementPrefix,
+                       'text': f'_{title}_ by {artist}',
+                       'icon_emoji': self.slackEmoji}
 
-
+            requests.post(self.slackWebHookUrl, json=payload)
