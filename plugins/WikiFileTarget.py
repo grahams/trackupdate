@@ -91,7 +91,7 @@ class WikiFileTarget(Target):
 
         return
 
-    def logTrack(self, title, artist, album, length, startTime, ignore):
+    def logTrack(self, title, artist, album, length, artwork, startTime, ignore):
         if( ignore is not True ):
             trackText = f"|-\n|{title}\n|{artist}\n|{album}\n"
 

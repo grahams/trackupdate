@@ -21,6 +21,7 @@
 from Target import Target
 import configparser
 import os
+import urllib.parse
 
 class AudioHijackTarget(Target):
     pluginName = "Audio Hijack Track Updater"
@@ -30,6 +31,7 @@ class AudioHijackTarget(Target):
     initArtist = ""
     initAlbum = ""
     initTime = ""
+    initArtwork = ""
 
     def __init__(self, config, episode):
         try:
@@ -51,15 +53,17 @@ class AudioHijackTarget(Target):
                       self.initArtist, 
                       self.initAlbum,
                       self.initTime,
+                      self.initArtwork,
                       None, None)
 
     def close(self):
         os.remove(self.initDestination)
 
-    def logTrack(self, title, artist, album, time, startTime, ignore):
+    def logTrack(self, title, artist, album, time, artwork, startTime, ignore):
         fh = open(self.initDestination, 'w')
         fh.write(f"Title: {title}\n")
         fh.write(f"Artist: {artist}\n")
         fh.write(f"Album: {album}\n")
         fh.write(f"Time: {time}\n")
+        fh.write(f"Artwork: file://{urllib.parse.quote(artwork)}\n")
         fh.close()

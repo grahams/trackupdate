@@ -38,6 +38,7 @@ class TrackUpdate(object):
     trackName  = ""
     trackAlbum = ""
     trackTime = ""
+    trackArtwork = ""
     episodeNumber = "XX"
     pollTime = 10
     startTime = -1
@@ -45,6 +46,7 @@ class TrackUpdate(object):
     stopTitle = ""
     stopArtist = ""
     stopAlbum = ""
+    stopArtwork = ""
     ignoreAlbum = None
 
     def usage(self):
@@ -139,15 +141,15 @@ Example:
                     if(self.startTime==-1):
                         try:
                             track = json.loads(subprocess.check_output(["osascript",
-                                                "Automation/GetCurrentTrackJSON.scpt"]))
+                                                "Automation/GetCurrentTrackJSONWithArtwork.scpt"]))
                         except subprocess.CalledProcessError:
                             print("osascript failed, skipping")
                             continue
 
                         album = None
 
-                        if('album' in track.keys()):
-                            album = track['album']
+                        if('trackAlbum' in track.keys()):
+                            album = track['trackAlbum']
                         
 
                         if((len(track) == 0) or (album == self.introAlbum)):
@@ -159,7 +161,7 @@ Example:
 
             while(1):
                 track = json.loads(subprocess.check_output(["osascript",
-                                     "Automation/GetCurrentTrackJSON.scpt"],
+                                     "Automation/GetCurrentTrackJSONWithArtwork.scpt"],
                                                            text=True))
 
                 if(len(track) > 0):
@@ -169,6 +171,7 @@ Example:
                                      self.stopArtist,
                                      self.stopAlbum, 
                                      "9:99", 
+                                     self.stopArtwork,
                                      self.startTime)
                         
                     
@@ -192,26 +195,30 @@ Example:
         iName = ""
         iAlbum = ""
         iTime = ""
+        iArtwork = ""
 
-        if('artist' in t.keys()):
-            iArtist = t['artist']
-        if('name' in t.keys()):
-            iName = t['name']
-        if('album' in t.keys()):
-            iAlbum = t['album']
-        if('time' in t.keys()):
-            iTime = t['time']
+        if('trackArtist' in t.keys()):
+            iArtist = t['trackArtist']
+        if('trackName' in t.keys()):
+            iName = t['trackName']
+        if('trackAlbum' in t.keys()):
+            iAlbum = t['trackAlbum']
+        if('trackTime' in t.keys()):
+            iTime = t['trackTime']
+        if('trackArtwork' in t.keys()):
+            iArtwork = t['trackArtwork']
 
         self.updateTrack(iName, iArtist, iAlbum, 
-                         iTime, self.startTime)
+                         iTime, iArtwork, self.startTime)
 
-    def updateTrack(self, name, artist, album, time, startTime):
+    def updateTrack(self, name, artist, album, time, artwork, startTime):
         # make sure the track has actually changed
         if( (artist != self.trackArtist) or (name != self.trackName) ):
             self.trackArtist = artist
             self.trackName  = name
             self.trackAlbum = album
             self.trackTime = time
+            self.trackArtwork = artwork
 
             ignore = False
 
@@ -221,7 +228,7 @@ Example:
             for plugin in pluginList:
                 try:
                     pluginList[plugin].logTrack(name, artist, album,    
-                                                time, startTime, ignore)
+                                                time, artwork, startTime, ignore)
                 except:
                     logging.error(plugin + ": Error trying to update track")
         

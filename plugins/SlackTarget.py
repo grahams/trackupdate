@@ -52,7 +52,7 @@ class SlackTarget(Target):
     def close(self):
         return
 
-    def logTrack(self, title, artist, album, time, startTime, ignore):
+    def logTrack(self, title, artist, album, time, artwork, startTime, ignore):
         if( ignore is not True):
             payload = {'channel': self.slackChannel,
                        'username': self.slackAnnouncementPrefix,
