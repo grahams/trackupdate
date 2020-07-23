@@ -146,10 +146,16 @@ Example:
                 while(1):
                     if(self.startTime==-1):
                         try:
-                            track = json.loads(subprocess.check_output(["osascript",
-                                                "Automation/GetCurrentTrackJSONWithArtwork.scpt"]))
+                            trackJson = subprocess.check_output(["osascript",
+                                                "Automation/GetCurrentTrackJSONWithArtwork.scpt"])
+                            track = json.loads(trackJson)
+
+
                         except subprocess.CalledProcessError:
-                            print("osascript failed, skipping")
+                            logging.error("osascript failed, skipping track")
+                            continue
+                        except json.decoder.JSONDecodeError:
+                            logging.error("JSON decode, skipping track")
                             continue
 
                         album = None
