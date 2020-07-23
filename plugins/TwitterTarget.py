@@ -115,11 +115,10 @@ class TwitterTarget(Target):
                 if( self.t != None ):
                     tweet = artist + " - " + title
 
+                    tweet = tweet[0:280]
+
                     try:
-                        if( len(tweet) > 140 ):
-                            self.t.PostUpdate(tweet[0:140])
-                        else:
-                            self.t.PostUpdate(tweet)
+                        self.t.PostUpdate(tweet, media=artwork)
                     except twitter.TwitterError:
                         print("twitter error")
 
