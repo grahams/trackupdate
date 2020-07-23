@@ -48,6 +48,7 @@ class TrackUpdate(object):
     stopAlbum = ""
     stopArtwork = ""
     ignoreAlbum = None
+    pluginPattern = "*.py"
 
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
@@ -61,6 +62,7 @@ Arguments:
     -e  --episode     the episode number (optional, used by some plugins)
     -t  --polltime    the time to wait between polling iTunes
     -h  --help        show this help page
+    -p  --pattern     plugin filename pattern (optional, defaults to '*.py')
     -v  --verbose     you are lonely and want trackupdate to talk more
 
 Example:
@@ -97,8 +99,9 @@ Example:
         # process command-line arguments
         if(len(argv) > 0):
             try:
-                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:v", ["help",
-                                           "episode=", "polltime=", "verbose"])
+                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:p:v", ["help",
+                                           "episode=", "polltime=", 
+                                           "pattern=", "verbose"])
             except (getopt.GetoptError) as err:
                 # print help information and exit:
                 logging.error(str(err)) # will print something like 
@@ -115,6 +118,9 @@ Example:
                         a = 1
 
                     self.pollTime = a
+                elif o in ("-p", "--pattern"):
+                    logging.debug("Plugin pattern set to: " + a)
+                    self.pluginPattern = a
                 elif o in ("-v", "--verbose"):
                     # remove any logging handlers created by logging before
                     # BasicConfig() is called
@@ -240,7 +246,7 @@ Example:
         
         sys.path.append(scriptPath)
         sys.path.append(scriptPath + "/plugins/")
-        pluginNames = glob.glob(scriptPath + "/plugins/*.py")
+        pluginNames = glob.glob(scriptPath + "/plugins/" + self.pluginPattern)
         for x in pluginNames:
             className = x.replace(".py","").replace(scriptPath + "/plugins/","")
             enabled = 'False'
