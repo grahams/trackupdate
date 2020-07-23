@@ -56,11 +56,8 @@ OAuthConsumerSecret: <key>
 
 [SlackTarget]
 enabled: True
-slackChannel : #workshop
 #see https://api.slack.com/incoming-webhooks for info on slack webhooks
 webhookURL : <slack webhook url>
-emojiName : musical_note
-announcementPrefix: "You hear a voice over the radio say: "
 
 [ListCommon]
 showArtist: grahams

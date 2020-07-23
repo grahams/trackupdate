@@ -33,16 +33,12 @@ class SlackTarget(Target):
     pluginName = "Slack Track Updater"
     logger = logging.getLogger("slack updater")
 
-    # config values
-    slackChannel = "" #what slack channel do you want the track data announced in
-    slackWebHookUrl = "" #this is the slack webhook url. See https://api.slack.com/incoming-webhooks for more info
-    slackAnnouncementPrefix = "" #this should be the "user name", but we're using it almost like moo-like a stage-talk
+    slackWebHookUrl = "" # https://api.slack.com/incoming-webhooks
 
     def __init__(self, config, episode):
         try:
             self.slackChannel = config.get('SlackTarget', 'slackChannel')
             self.slackWebHookUrl = config.get('SlackTarget', 'webhookURL')
-            self.slackAnnouncementPrefix = config.get('SlackTarget', 'announcementPrefix')
         except configparser.NoSectionError:
             self.logger.error("SlackTarget: No [SlackTarget] section in config")
             return
@@ -61,10 +57,6 @@ class SlackTarget(Target):
         blocks = [{
             "type": "section",
             "block_id": str(uuid.uuid4()),
-            "text": {
-                "type": "mrkdwn",
-                "text": f"*{self.slackAnnouncementPrefix}*" 
-            },
             "fields": [
             {
                     "type": "mrkdwn",
@@ -98,7 +90,7 @@ class SlackTarget(Target):
             artworkUrl = f"http://grahams.wtf/public/{artworkStem}"
 
         if(artworkUrl is not None):
-            # Since it takes awhile for the images to propogate, let's make
+            # Since it takes awhile for the images to propagate, let's make
             # sure they exist first
             waitingUpload = True
             failureCounter = 5
