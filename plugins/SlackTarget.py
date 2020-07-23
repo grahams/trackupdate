@@ -37,7 +37,6 @@ class SlackTarget(Target):
 
     def __init__(self, config, episode):
         try:
-            self.slackChannel = config.get('SlackTarget', 'slackChannel')
             self.slackWebHookUrl = config.get('SlackTarget', 'webhookURL')
         except configparser.NoSectionError:
             self.logger.error("SlackTarget: No [SlackTarget] section in config")
