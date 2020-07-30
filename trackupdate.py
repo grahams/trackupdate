@@ -29,6 +29,7 @@ import glob
 import logging
 import subprocess
 import json
+import traceback
 
 pluginList = { }
 
@@ -198,8 +199,9 @@ Example:
         for plugin in pluginList:
             try:
                 pluginList[plugin].close()
-            except:
+            except e:
                 logging.error(plugin + ": Error trying to close target")
+                logging.error(traceback.format_tb(sys_exc_info()[2]))
     
 
     def processCurrentTrack(self, t):
@@ -241,9 +243,9 @@ Example:
                 try:
                     pluginList[plugin].logTrack(name, artist, album,    
                                                 time, artwork, startTime, ignore)
-                except:
+                except Exception as e:
                     logging.error(plugin + ": Error trying to update track")
-        
+                    logging.error(traceback.format_tb(sys_exc_info()[2]))
 
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
