@@ -2,6 +2,9 @@
 # You can blacklist an album name (to omit it from the listings)
 introAlbum: Radio Programme Heartbeat
 pollTime: 1
+pollScriptPath: Automation/GetCurrentTrackJSONWithArtwork.scpt
+coverImagePath: ~/radio/covers/
+coverImageBaseURL: https://example.com/radio/covers/
 
 # default info to appear while iTunes is stopped
 useStopValues: True

@@ -20,6 +20,7 @@
 
 from Target import Target
 import configparser
+import os
 
 # Since the user may not have python-twitter installed, and I didn't want it
 # to fail ugly in that case, we do some exception handling
@@ -37,6 +38,8 @@ class TwitterTarget(Target):
     initTweet = None
     closeTweet = None
 
+    coverImagePath = ""
+
     OAuthConsumerKey = None
     OAuthConsumerSecret = None
     OAuthUserToken = None
@@ -48,12 +51,17 @@ class TwitterTarget(Target):
             try:
                 self.OAuthConsumerKey = config.get('TwitterTarget', 'OAuthConsumerKey')
                 self.OAuthConsumerSecret = config.get('TwitterTarget', 'OAuthConsumerSecret')
+                self.coverImagePath = config.get('trackupdate', 'coverImagePath')
             except configparser.NoSectionError:
                 print("TwitterTarget: No [TwitterTarget] section in config")
                 return
             except configparser.NoOptionError:
                 print("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
                 return
+
+
+            self.coverImagePath = os.path.expanduser(self.coverImagePath) 
+
 
             # try to read the OAuth user tokens from the config file,
             # otherwise obtain new tokens.
@@ -118,7 +126,10 @@ class TwitterTarget(Target):
                     tweet = tweet[0:280]
 
                     try:
-                        self.t.PostUpdate(tweet, media=artwork)
+                        if(artwork != "/dev/null/"):
+                            self.t.PostUpdate(tweet, media=f"{self.coverImagePath}{artwork}")
+                        else:
+                            self.t.PostUpdate(tweet)
                     except twitter.TwitterError:
                         print("twitter error")
 

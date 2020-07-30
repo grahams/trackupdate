@@ -40,6 +40,8 @@ class TrackUpdate(object):
     trackAlbum = ""
     trackTime = ""
     trackArtwork = ""
+    coverImagePath = ""
+    pollScriptPath = ""
     episodeNumber = "XX"
     pollTime = 10
     startTime = -1
@@ -89,6 +91,8 @@ Example:
             self.stopArtist = config.get('trackupdate', 'stopArtist')
             self.stopAlbum = config.get('trackupdate', 'stopAlbum')
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
+            self.coverImagePath = config.get('trackupdate', 'coverImagePath')
+            self.pollScriptPath = config.get('trackupdate', 'pollScriptPath')
         except configparser.NoSectionError:
             logging.warning("Warning: Invalid config file, no [trackupdate] section.")
             pass
@@ -96,6 +100,7 @@ Example:
             print("[trackupdate]: Missing values in config")
             return
 
+        self.coverImagePath = os.path.expanduser(self.coverImagePath) 
 
         # process command-line arguments
         if(len(argv) > 0):
@@ -148,9 +153,9 @@ Example:
                     if(self.startTime==-1):
                         try:
                             trackJson = subprocess.check_output(["osascript",
-                                                "Automation/GetCurrentTrackJSONWithArtwork.scpt"])
+                                            self.pollScriptPath,
+                                            self.coverImagePath])
                             track = json.loads(trackJson)
-
 
                         except subprocess.CalledProcessError:
                             logging.error("osascript failed, skipping track")
@@ -174,7 +179,8 @@ Example:
 
             while(1):
                 track = json.loads(subprocess.check_output(["osascript",
-                                     "Automation/GetCurrentTrackJSONWithArtwork.scpt"],
+                                            self.pollScriptPath,
+                                            self.coverImagePath],
                                                            text=True))
 
                 if(len(track) > 0):
@@ -201,7 +207,7 @@ Example:
                 pluginList[plugin].close()
             except e:
                 logging.error(plugin + ": Error trying to close target")
-                logging.error(traceback.format_tb(sys_exc_info()[2]))
+                logging.error(traceback.format_tb(sys.exc_info()[2]))
     
 
     def processCurrentTrack(self, t):
@@ -245,7 +251,7 @@ Example:
                                                 time, artwork, startTime, ignore)
                 except Exception as e:
                     logging.error(plugin + ": Error trying to update track")
-                    logging.error(traceback.format_tb(sys_exc_info()[2]))
+                    logging.error(''.join(traceback.format_tb(sys.exc_info()[2])))
 
     def loadPlugins(self, config, episode):
         logging.debug("Loading plugins...")
