@@ -62,12 +62,12 @@ class AudioHijackTarget(Target):
     def close(self):
         os.remove(self.initDestination)
 
-    def logTrack(self, title, artist, album, time, artwork, startTime, ignore):
+    def logTrack(self, title, artist, album, length, artwork, startTime, ignore):
         fullPath = self.coverImagePath + artwork
         fh = open(self.initDestination, 'w')
         fh.write(f"Title: {title}\n")
         fh.write(f"Artist: {artist}\n")
         fh.write(f"Album: {album}\n")
-        fh.write(f"Time: {time}\n")
+        fh.write(f"Time: {length}\n")
         fh.write(f"Artwork: file://{urllib.parse.quote(fullPath)}\n")
         fh.close()

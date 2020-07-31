@@ -38,7 +38,7 @@ class TrackUpdate(object):
     trackArtist = ""
     trackName  = ""
     trackAlbum = ""
-    trackTime = ""
+    trackLength = ""
     trackArtwork = ""
     coverImagePath = ""
     pollScriptPath = ""
@@ -214,7 +214,7 @@ Example:
         iArtist = ""
         iName = ""
         iAlbum = ""
-        iTime = ""
+        iLength = ""
         iArtwork = ""
 
         if('trackArtist' in t.keys()):
@@ -224,20 +224,20 @@ Example:
         if('trackAlbum' in t.keys()):
             iAlbum = t['trackAlbum']
         if('trackTime' in t.keys()):
-            iTime = t['trackTime']
+            iLength = t['trackTime']
         if('trackArtwork' in t.keys()):
             iArtwork = t['trackArtwork']
 
         self.updateTrack(iName, iArtist, iAlbum, 
                          iTime, iArtwork, self.startTime)
 
-    def updateTrack(self, name, artist, album, time, artwork, startTime):
+    def updateTrack(self, name, artist, album, length, artwork, startTime):
         # make sure the track has actually changed
         if( (artist != self.trackArtist) or (name != self.trackName) ):
             self.trackArtist = artist
             self.trackName  = name
             self.trackAlbum = album
-            self.trackTime = time
+            self.trackLength = length
             self.trackArtwork = artwork
 
             ignore = False
@@ -248,7 +248,7 @@ Example:
             for plugin in pluginList:
                 try:
                     pluginList[plugin].logTrack(name, artist, album,    
-                                                time, artwork, startTime, ignore)
+                                                length, artwork, startTime, ignore)
                 except Exception as e:
                     logging.error(plugin + ": Error trying to update track")
                     logging.error(''.join(traceback.format_tb(sys.exc_info()[2])))

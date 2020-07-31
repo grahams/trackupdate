@@ -117,7 +117,7 @@ class TwitterTarget(Target):
                         print("twitter error")
                 return
 
-    def logTrack(self, title, artist, album, time, artwork, startTime, ignore):
+    def logTrack(self, title, artist, album, length, artwork, startTime, ignore):
         if( ignore is not True):
             if( importSuccessful == True ):
                 if( self.t != None ):
