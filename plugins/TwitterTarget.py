@@ -117,17 +117,17 @@ class TwitterTarget(Target):
                         print("twitter error")
                 return
 
-    def logTrack(self, title, artist, album, length, artwork, startTime, ignore):
-        if( ignore is not True):
+    def logTrack(self, track, startTime):
+        if( track.ignore is not True):
             if( importSuccessful == True ):
                 if( self.t != None ):
-                    tweet = artist + " - " + title
+                    tweet = track.artist + " - " + track.title
 
                     tweet = tweet[0:280]
 
                     try:
-                        if(artwork != "/dev/null/"):
-                            self.t.PostUpdate(tweet, media=f"{self.coverImagePath}{artwork}")
+                        if(track.artwork != "/dev/null/"):
+                            self.t.PostUpdate(tweet, media=f"{self.coverImagePath}{track.artwork}")
                         else:
                             self.t.PostUpdate(tweet)
                     except twitter.TwitterError:

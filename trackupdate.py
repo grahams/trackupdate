@@ -30,16 +30,15 @@ import logging
 import subprocess
 import json
 import traceback
+from Track import Track
 
 pluginList = { }
 
 class TrackUpdate(object):
     introAlbum = ""
-    trackArtist = ""
-    trackName  = ""
-    trackAlbum = ""
-    trackLength = ""
-    trackArtwork = ""
+
+    currentTrack = Track(None,None,None,None,None,None,None)
+
     coverImagePath = ""
     pollScriptPath = ""
     episodeNumber = "XX"
@@ -186,14 +185,13 @@ Example:
                 if(len(track) > 0):
                     self.processCurrentTrack(track)
                 elif(self.useStopValues == 'True'):
-                    self.updateTrack(self.stopTitle, 
-                                     self.stopArtist,
-                                     self.stopAlbum, 
-                                     "9:99", 
-                                     self.stopArtwork,
-                                     self.startTime)
-                        
-                    
+                    stopTrack = Track(self.stopTitle, 
+                                      self.stopArtist, 
+                                      self.stopAlbum, 
+                                      "9:99",
+                                      self.stopArtwork, 
+                                      "", False)
+                    self.updateTrack(stopTrack, self.startTime)
 
                 time.sleep(self.pollTime)
         except (KeyboardInterrupt,SystemExit):
@@ -216,6 +214,7 @@ Example:
         iAlbum = ""
         iLength = ""
         iArtwork = ""
+        iId = ""
 
         if('trackArtist' in t.keys()):
             iArtist = t['trackArtist']
@@ -227,28 +226,29 @@ Example:
             iLength = t['trackLength']
         if('trackArtwork' in t.keys()):
             iArtwork = t['trackArtwork']
+        if('trackId' in t.keys()):
+            iId = t['trackId']
 
-        self.updateTrack(iName, iArtist, iAlbum, 
-                         iTime, iArtwork, self.startTime)
+        track = Track(iName, iArtist, iAlbum, iLength, iArtwork, iId, False)
 
-    def updateTrack(self, name, artist, album, length, artwork, startTime):
+        # print(str(track))
+
+        self.updateTrack(track, self.startTime)
+
+    def updateTrack(self, track, startTime):
         # make sure the track has actually changed
-        if( (artist != self.trackArtist) or (name != self.trackName) ):
-            self.trackArtist = artist
-            self.trackName  = name
-            self.trackAlbum = album
-            self.trackLength = length
-            self.trackArtwork = artwork
+        if( (track.artist != self.currentTrack.artist) or 
+            (track.title != self.currentTrack.title) ):
 
-            ignore = False
+            self.currentTrack = track
+            track.ignore = False
 
-            if( album == self.ignoreAlbum ):
-                ignore = True
+            if( track.album == self.ignoreAlbum ):
+                track.ignore = True
 
             for plugin in pluginList:
                 try:
-                    pluginList[plugin].logTrack(name, artist, album,    
-                                                length, artwork, startTime, ignore)
+                    pluginList[plugin].logTrack(track, startTime)
                 except Exception as e:
                     logging.error(plugin + ": Error trying to update track")
                     logging.error(''.join(traceback.format_tb(sys.exc_info()[2])))

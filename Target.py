@@ -31,14 +31,15 @@ class Target(object):
     def close(self):
         print("If this were a real plugin we would do some destruction here")
 
-    def logTrack(self, title, artist, album, length, artwork, startTime, ignore):
+    def logTrack(self, track, startTime):
         print("If this were a real plugin it would do something profound with this data:")
 
-        print("title: " + title)
-        print("artist: " + artist)
-        print("album: " + album)
-        print("length: " + length)
-        print("artwork: " + artwork)
+        print("title: " + track.title)
+        print("artist: " + track.artist)
+        print("album: " + track.album)
+        print("length: " + track.length)
+        print("id: " + track.uniqueId)
+        print("artwork: " + track.artwork)
 
     def createLongDate(self):
         text = ""

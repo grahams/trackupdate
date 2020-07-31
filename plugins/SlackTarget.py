@@ -51,10 +51,10 @@ class SlackTarget(Target):
     def close(self):
         return
 
-    def logTrack(self, title, artist, album, length, artwork, startTime, ignore):
+    def logTrack(self, track, startTime):
 
         artworkUrl = None
-        postString = f'{title} by {artist}'
+        postString = f'{track.title} by {track.artist}'
 
         blocks = [{
             "type": "section",
@@ -66,7 +66,7 @@ class SlackTarget(Target):
             },
             {
                     "type": "mrkdwn",
-                    "text": title
+                    "text": track.title
             },
             {
                     "type": "mrkdwn",
@@ -74,7 +74,7 @@ class SlackTarget(Target):
             },
             {
                     "type": "mrkdwn",
-                    "text": artist
+                    "text": track.artist
             },
             {
                     "type": "mrkdwn",
@@ -82,13 +82,13 @@ class SlackTarget(Target):
             },
             {
                     "type": "mrkdwn",
-                    "text": album
+                    "text": track.album
             }
             ]
         }]
 
-        if(artwork != "/dev/null"):
-            artworkUrl = f"{self.coverImageBaseUrl}{artwork}"
+        if(track.artwork != "/dev/null"):
+            artworkUrl = f"{self.coverImageBaseUrl}{track.artwork}"
 
         if(artworkUrl is not None):
             # Since it takes awhile for the images to propagate, let's make
@@ -114,7 +114,7 @@ class SlackTarget(Target):
                     failureCounter = -1
                     waitingUpload = False
 
-        if( ignore is not True):
+        if( track.ignore is not True):
             payload = { 'text': postString, 'blocks': blocks }
 
             self.logger.debug("sending payload: " + json.dumps(payload))

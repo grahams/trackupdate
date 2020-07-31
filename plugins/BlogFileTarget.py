@@ -81,12 +81,12 @@ class BlogFileTarget(Target):
 
         return
 
-    def logTrack(self, title, artist, album, length, artwork, startTime, ignore):
-        if( ignore is not True ):
+    def logTrack(self, track, startTime):
+        if( track.ignore is not True ):
             trackText = (f"<tr>\n"
-                        f"<td>{title}</td>"
-                        f"<td>{artist}</td>"
-                        f"<td>{album}</td>"
+                        f"<td>{track.title}</td>"
+                        f"<td>{track.artist}</td>"
+                        f"<td>{track.album}</td>"
                         f"</tr>")
 
 
