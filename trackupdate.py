@@ -223,8 +223,8 @@ Example:
             iName = t['trackName']
         if('trackAlbum' in t.keys()):
             iAlbum = t['trackAlbum']
-        if('trackTime' in t.keys()):
-            iLength = t['trackTime']
+        if('trackLength' in t.keys()):
+            iLength = t['trackLength']
         if('trackArtwork' in t.keys()):
             iArtwork = t['trackArtwork']
 
