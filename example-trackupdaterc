@@ -79,3 +79,8 @@ enabled: True
 [BlogFileTarget]
 enabled: True
 
+[BackblazeTarget]
+enabled: True
+appKey: xx
+appKeyId: yy
+bucketName: radio-images
