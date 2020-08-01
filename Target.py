@@ -24,6 +24,7 @@ from datetime import date
 
 class Target(object):
     pluginName = "Base Class"
+    priority = 0
 
     def __init__(self, config, episode):
         print("If this were a real plugin we would do some initalization here")

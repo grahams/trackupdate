@@ -30,9 +30,10 @@ import logging
 import subprocess
 import json
 import traceback
+from operator import attrgetter
 from Track import Track
 
-pluginList = { }
+pluginList = []
 
 class TrackUpdate(object):
     introAlbum = ""
@@ -202,10 +203,10 @@ Example:
 
         for plugin in pluginList:
             try:
-                pluginList[plugin].close()
-            except e:
+                plugin.close()
+            except Exception as e:
                 logging.error(plugin + ": Error trying to close target")
-                logging.error(traceback.format_tb(sys.exc_info()[2]))
+                logging.error(''.join(traceback.format_tb(sys.exc_info()[2])))
     
 
     def processCurrentTrack(self, t):
@@ -248,7 +249,7 @@ Example:
 
             for plugin in pluginList:
                 try:
-                    pluginList[plugin].logTrack(track, startTime)
+                    plugin.logTrack(track, startTime)
                 except Exception as e:
                     logging.error(plugin + ": Error trying to update track")
                     logging.error(''.join(traceback.format_tb(sys.exc_info()[2])))
@@ -288,7 +289,9 @@ Example:
                 o = cls(config,episode)
 
                 # add the plugin to the list
-                pluginList[ o.pluginName ] = o
+                pluginList.append(o)
+
+        pluginList.sort(key=attrgetter('priority'), reverse=True)
 
 if __name__ == "__main__":
     trackUpdate = TrackUpdate(sys.argv[1:])
