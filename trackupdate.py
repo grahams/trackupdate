@@ -96,10 +96,10 @@ Example:
             self.coverImageBaseURL = config.get('trackupdate', 'coverImageBaseURL')
             self.pollScriptPath = config.get('trackupdate', 'pollScriptPath')
         except configparser.NoSectionError:
-            logging.warning("Warning: Invalid config file, no [trackupdate] section.")
+            logging.error("Warning: Invalid config file, no [trackupdate] section.")
             pass
         except configparser.NoOptionError:
-            print("[trackupdate]: Missing values in config")
+            logging.error("[trackupdate]: Missing values in config")
             return
 
         self.coverImagePath = os.path.expanduser(self.coverImagePath) 
@@ -244,8 +244,6 @@ Example:
                       self.coverImageBaseURL,
                       iId, 
                       False)
-
-        # print(str(track))
 
         self.updateTrack(track, self.startTime)
 
