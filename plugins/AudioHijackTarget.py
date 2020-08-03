@@ -19,6 +19,8 @@
 # IN THE SOFTWARE.
 
 from Target import Target
+from Track import Track
+
 import configparser
 import os
 import urllib.parse
@@ -57,6 +59,8 @@ class AudioHijackTarget(Target):
                       self.initAlbum,
                       self.initTime,
                       self.initArtwork,
+                      self.coverImagePath,
+                      "",
                       "",
                       False)
 

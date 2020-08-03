@@ -24,8 +24,6 @@ import logging
 
 from b2sdk.v1 import *
 
-import os
-
 class BackblazeTarget(Target):
     pluginName = "Backblaze Track Updater"
     priority = 100
@@ -38,22 +36,17 @@ class BackblazeTarget(Target):
     appKeyId = None
     bucketName = None
 
-    coverImagePath = ""
-
     def __init__(self, config, episode):
         try:
             self.appKey = config.get('BackblazeTarget', 'appKey')
             self.appKeyId = config.get('BackblazeTarget', 'appKeyId')
             self.bucketName = config.get('BackblazeTarget', 'bucketName')
-            self.coverImagePath = config.get('trackupdate', 'coverImagePath')
         except configparser.NoSectionError:
             self.logger.error("BackblazeTarget: No [BackblazeTarget] section in config")
             return
         except configparser.NoOptionError:
             self.logger.error("BackblazeTarget: Missing option in config")
             return
-
-        self.coverImagePath = os.path.expanduser(self.coverImagePath) 
 
         info = InMemoryAccountInfo()
         self.b2 = B2Api(info)
@@ -80,8 +73,10 @@ class BackblazeTarget(Target):
             self.logger.debug(f"{track.artwork} already exists in bucket, skipping")
             return
 
+        self.logger.debug(f"uploading {track.getArtworkPath()}")
+
         self.bucket.upload_local_file(
-            local_file=f"{self.coverImagePath}{track.artwork}",
+            local_file=track.getArtworkPath(),
             file_name=track.artwork)
 
         self.logger.debug("cover image url: " + self.bucket.get_download_url(track.artwork))

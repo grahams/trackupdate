@@ -33,14 +33,11 @@ class SlackTarget(Target):
     pluginName = "Slack Track Updater"
     logger = logging.getLogger("slack updater")
 
-    coverImageBaseUrl = ""
-
     slackWebHookUrl = "" # https://api.slack.com/incoming-webhooks
 
     def __init__(self, config, episode):
         try:
             self.slackWebHookUrl = config.get('SlackTarget', 'webhookURL')
-            self.coverImageBaseUrl = config.get('trackupdate', 'coverImageBaseURL')
         except configparser.NoSectionError:
             self.logger.error("SlackTarget: No [SlackTarget] section in config")
             return
@@ -88,7 +85,7 @@ class SlackTarget(Target):
         }]
 
         if(track.artwork != "/dev/null"):
-            artworkUrl = f"{self.coverImageBaseUrl}{track.artwork}"
+            artworkUrl = track.getArtworkURL()
 
         if(artworkUrl is not None):
             # Since it takes awhile for the images to propagate, let's make

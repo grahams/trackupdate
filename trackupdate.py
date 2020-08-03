@@ -38,9 +38,10 @@ pluginList = []
 class TrackUpdate(object):
     introAlbum = ""
 
-    currentTrack = Track(None,None,None,None,None,None,None)
+    currentTrack = Track(None,None,None,None,None,None,None,None,None)
 
     coverImagePath = ""
+    coverImageBaseURL = ""
     pollScriptPath = ""
     episodeNumber = "XX"
     pollTime = 10
@@ -92,6 +93,7 @@ Example:
             self.stopAlbum = config.get('trackupdate', 'stopAlbum')
             self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
             self.coverImagePath = config.get('trackupdate', 'coverImagePath')
+            self.coverImageBaseURL = config.get('trackupdate', 'coverImageBaseURL')
             self.pollScriptPath = config.get('trackupdate', 'pollScriptPath')
         except configparser.NoSectionError:
             logging.warning("Warning: Invalid config file, no [trackupdate] section.")
@@ -191,7 +193,10 @@ Example:
                                       self.stopAlbum, 
                                       "9:99",
                                       self.stopArtwork, 
-                                      "", False)
+                                      self.coverImagePath,
+                                      self.coverImageBaseURL,
+                                      "", 
+                                      False)
                     self.updateTrack(stopTrack, self.startTime)
 
                 time.sleep(self.pollTime)
@@ -230,7 +235,15 @@ Example:
         if('trackId' in t.keys()):
             iId = t['trackId']
 
-        track = Track(iName, iArtist, iAlbum, iLength, iArtwork, iId, False)
+        track = Track(iName, 
+                      iArtist, 
+                      iAlbum, 
+                      iLength, 
+                      iArtwork, 
+                      self.coverImagePath,
+                      self.coverImageBaseURL,
+                      iId, 
+                      False)
 
         # print(str(track))
 
