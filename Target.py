@@ -20,13 +20,21 @@
 
 import os
 import datetime
+import logging
 from datetime import date
 
 class Target(object):
     pluginName = "Base Class"
+    episodeDate = datetime.datetime.now()
     priority = 0
+    logger = logging.getLogger("target base class")
+        
 
-    def __init__(self, config, episode):
+    # by default, plugins are not triggered in "archive" mode where we read
+    # from the db.  Plugins have to ask to be included by setting this true
+    enableArchive = False  
+
+    def __init__(self, config, episode, episodeDate):
         print("If this were a real plugin we would do some initalization here")
 
     def close(self):
@@ -42,19 +50,33 @@ class Target(object):
         print("id: " + track.uniqueId)
         print("artwork: " + track.artwork)
 
-    def createLongDate(self):
+    def getLongDate(self):
         text = ""
 
         # compute the suffix
-        day = date.today().day
+        day = self.episodeDate.day
         if 4 <= day <= 20 or 24 <= day <= 30:
             suffix = "th"
         else:
             suffix = ["st", "nd", "rd"][day % 10 - 1]
 
-        text = ('{dt:%B} {dt.day}' + suffix + ', {dt.year}').format(dt=datetime.datetime.now())
+        text = ('{dt:%B} {dt.day}' + suffix + ', {dt.year}').format(dt=self.episodeDate)
 
         return text
+
+    def getTimeStamp(self, tDelta):
+        d = {"D": tDelta.days}
+        hours, rem = divmod(tDelta.seconds, 3600)
+        minutes, seconds = divmod(rem, 60)
+
+        padH = "{:02d}".format(hours)
+        padM = "{:02d}".format(minutes)
+        padS = "{:02d}".format(seconds)
+
+        return f"{padH}:{padM}:{padS}"
+
+    def getEpisodeTitle(self, episodeNumber):
+        return f"Episode {episodeNumber} - {self.getLongDate()}"
 
     def logToFile(self, fh, text):
         fh.write(text)

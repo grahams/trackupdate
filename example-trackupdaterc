@@ -62,6 +62,10 @@ enabled: True
 #see https://api.slack.com/incoming-webhooks for info on slack webhooks
 webhookURL : <slack webhook url>
 
+[SqliteTarget]
+enabled: False
+dbPath: ~/src/trackupdate/db/trackupdate.sqlite
+
 [ListCommon]
 showArtist: grahams
 filePath: ~/Music/Audio Hijack
@@ -71,6 +75,9 @@ archiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20The%%20Antonelli%%20
 enabled: True
 
 [CueFileTarget]
+enabled: True
+
+[CsvFileTarget]
 enabled: True
 
 [WikiFileTarget]

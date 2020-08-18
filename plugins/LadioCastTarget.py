@@ -30,7 +30,7 @@ class LadioCastTarget(Target):
     initAlbum = ""
     initTime = ""
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
         try:
             self.initTitle = config.get('LadioCastTarget', 'initTitle')
             self.initArtist = config.get('LadioCastTarget', 'initArtist')

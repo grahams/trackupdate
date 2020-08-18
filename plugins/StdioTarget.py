@@ -25,7 +25,7 @@ import os
 class StdioTarget(Target):
     pluginName = "stdio Track Updater"
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
         return
 
     def close(self):

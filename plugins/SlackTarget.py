@@ -35,7 +35,10 @@ class SlackTarget(Target):
 
     slackWebHookUrl = "" # https://api.slack.com/incoming-webhooks
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
+        if(episodeDate):
+            self.episodeDate = episodeDate
+        
         try:
             self.slackWebHookUrl = config.get('SlackTarget', 'webhookURL')
         except configparser.NoSectionError:

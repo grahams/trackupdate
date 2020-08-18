@@ -23,13 +23,16 @@ from Target import Target
 import os
 import sys
 import configparser
+import logging
 
 import time
-import datetime
-from datetime import date
+
+from datetime import datetime
 
 class TrackListFileTarget(Target):
+    logger = logging.getLogger("track list updater")
     pluginName = "Track List File Writer"
+    enableArchive = True
 
     filePath = ""
 
@@ -37,15 +40,18 @@ class TrackListFileTarget(Target):
 
     initialTime = None
     
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
+        if(episodeDate):
+            self.episodeDate = episodeDate
+        
         # read config entries
         try:
             self.filePath = config.get('ListCommon', 'filePath')
         except configparser.NoSectionError:
-            print("ListCommon: No [ListCommon] section in config")
+            self.logger.error("ListCommon: No [ListCommon] section in config")
             return
         except configparser.NoOptionError:
-            print("ListCommon: Missing values in config")
+            self.logger.error("ListCommon: Missing values in config")
             return
 
         # if I gave a shit about non-unix platforms I might
@@ -56,21 +62,24 @@ class TrackListFileTarget(Target):
 
         self.filePath = os.path.expanduser(self.filePath)
 
-        fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=datetime.datetime.now())
+        fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=self.episodeDate)
 
         self.trackListFile = open(self.filePath + fileDate + "-list.txt", 'w+')
         return
 
     def logTrack(self, track, startTime):
+        if(startTime == -1):
+            startTime = datetime.now()
+
         if(self.initialTime == None):
-            self.initialTime = time.time()
+            self.initialTime = startTime
 
         if( track.ignore is not True):
             # compute the time since the start of the show
-            tDelta = str(datetime.timedelta(seconds=round(time.time() -
-                                                    self.initialTime)))
-
-            trackText = f"{track.artist} - {track.title} ({tDelta})\n"
+            tDelta = startTime - self.initialTime
+            tFormat = self.getTimeStamp(tDelta)
+            
+            trackText = f"{track.artist} - {track.title} ({tFormat})\n"
 
             self.logToFile(self.trackListFile, trackText)
 

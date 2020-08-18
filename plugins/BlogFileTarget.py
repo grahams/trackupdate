@@ -30,14 +30,20 @@ from datetime import date
 
 class BlogFileTarget(Target):
     pluginName = "Blog File Writer"
+    enableArchive = True
     showArtist = ""
 
+    episodeNumber = None
     filePath = ""
     archiveURL = ""
 
     wikiFile = None
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
+        self.episodeNumber = episode
+        if(episodeDate):
+            self.episodeDate = episodeDate
+        
         # read config entries
         try:
             self.filePath = config.get('ListCommon', 'filePath')
@@ -58,11 +64,10 @@ class BlogFileTarget(Target):
 
         self.filePath = os.path.expanduser(self.filePath)
 
-        self.archiveURL = date.today().strftime(self.archiveURL)
+        fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=self.episodeDate)
+        self.archiveURL = f"{self.archiveURL}{fileDate}.mp3"
 
-        fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=datetime.datetime.now())
-
-        headerText = "Subject: " + self.createLongDate() + "\n"
+        headerText = "Subject: " + self.getEpisodeTitle(self.episodeNumber) + "\n"
         headerText += "Archive URL: " + self.archiveURL + "\n"
         headerText += "---\n"
 

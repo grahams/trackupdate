@@ -22,6 +22,8 @@ from Target import Target
 import configparser
 import os
 
+import logging
+
 # Since the user may not have python-twitter installed, and I didn't want it
 # to fail ugly in that case, we do some exception handling
 importSuccessful = True
@@ -34,6 +36,8 @@ except ImportError:
     importSuccessful = False
 
 class TwitterTarget(Target):
+    logger = logging.getLogger("twitter updater")
+    
     pluginName = "Twitter Track Updater"
     initTweet = None
     closeTweet = None
@@ -44,16 +48,16 @@ class TwitterTarget(Target):
     OAuthUserTokenSecret = None
     t = None
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
         if( importSuccessful == True ):
             try:
                 self.OAuthConsumerKey = config.get('TwitterTarget', 'OAuthConsumerKey')
                 self.OAuthConsumerSecret = config.get('TwitterTarget', 'OAuthConsumerSecret')
             except configparser.NoSectionError:
-                print("TwitterTarget: No [TwitterTarget] section in config")
+                logger.error("TwitterTarget: No [TwitterTarget] section in config")
                 return
             except configparser.NoOptionError:
-                print("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
+                logger.error("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
                 return
 
             # try to read the OAuth user tokens from the config file,
@@ -62,10 +66,10 @@ class TwitterTarget(Target):
                 self.OAuthUserToken = config.get('TwitterTarget', 'OAuthUserToken')
                 self.OAuthUserTokenSecret = config.get('TwitterTarget', 'OAuthUserTokenSecret')
             except configparser.NoSectionError:
-                print("TwitterTarget: No [TwitterTarget] section in config")
+                logger.error("TwitterTarget: No [TwitterTarget] section in config")
                 return
             except configparser.NoOptionError:
-                print("TwitterTarget: Need to obtain OAuth Authorization.")
+                logger.error("TwitterTarget: Need to obtain OAuth Authorization.")
                 self.obtainAuth()
 
             # this is an optional config value containing a tweet to be 
@@ -96,7 +100,7 @@ class TwitterTarget(Target):
                 try:
                     self.t.PostUpdate(self.initTweet)
                 except twitter.TwitterError:
-                    print("twitter error")
+                    logger.error("twitter error")
         return
 
     def close(self):
@@ -107,7 +111,7 @@ class TwitterTarget(Target):
                     try:
                         self.t.PostUpdate(self.closeTweet)
                     except twitter.TwitterError:
-                        print("twitter error")
+                        logger.error("twitter error")
                 return
 
     def logTrack(self, track, startTime):
@@ -125,7 +129,7 @@ class TwitterTarget(Target):
                         else:
                             self.t.PostUpdate(tweet)
                     except twitter.TwitterError:
-                        print("twitter error")
+                        logger.error("twitter error")
 
     def obtainAuth(self):
         import urlparse

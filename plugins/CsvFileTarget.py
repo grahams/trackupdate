@@ -23,39 +23,44 @@ from Target import Target
 import os
 import sys
 import configparser
+import logging
 
 import time
 import datetime
+
 from datetime import date
 
-class CueFileTarget(Target):
-    pluginName = "Cue File Writer"
-    showArtist = ""
+class CsvFileTarget(Target):
+    pluginName = "CSV File Writer"
     enableArchive = True
-
+    showTitle = ""
+    showArtist = ""
     episodeNumber = None
+
     filePath = ""
 
-    cueFile = None
+    csvFile = None
 
     trackCount = 0
     initialTime = None
 
+    logger = logging.getLogger("CSV updater")
+
     def __init__(self, config, episode, episodeDate):
         self.episodeNumber = episode
-
         if(episodeDate):
             self.episodeDate = episodeDate
-
+        
         # read config entries
         try:
             self.filePath = config.get('ListCommon', 'filePath')
+            self.showTitle = config.get('ListCommon', 'showTitle')
             self.showArtist = config.get('ListCommon', 'showArtist')
         except configparser.NoSectionError:
-            print("ListCommon: No [ListCommon] section in config")
+            logging.error("ListCommon: No [ListCommon] section in config")
             return
         except configparser.NoOptionError:
-            print("ListCommon: Missing values in config")
+            logging.error("ListCommon: Missing values in config")
             return
 
         # if I gave a shit about non-unix platforms I might
@@ -68,14 +73,14 @@ class CueFileTarget(Target):
 
         fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=self.episodeDate)
 
-        headerText = "REM GENRE Rock\n"
-        headerText += 'REM DATE {dt:%Y}\n'.format(dt=self.episodeDate)
-        headerText += f'PERFORMER "{self.showArtist}"\n'
-        headerText += f'TITLE "{self.getEpisodeTitle(self.episodeNumber)}"\n'
-        headerText += f'FILE "{fileDate}.mp3" MP3\n'
+        headerText = f'PODCAST,"{self.showTitle}",,,\n'
+        headerText += f'TITLE,"{self.getEpisodeTitle(self.episodeNumber)}",,,\n'
+        headerText += f'AUTHOR,"{self.showArtist}",,,\n'
+        headerText += f'DESCRIPTION,,,,\n'
+        headerText += 'YEAR,{dt:%Y},,,\n'.format(dt=self.episodeDate)
 
-        self.cueFile = open(self.filePath + fileDate + ".cue", 'w+')
-        self.logToFile(self.cueFile, headerText)
+        self.csvFile = open(self.filePath + fileDate + ".csv", 'w+')
+        self.logToFile(self.csvFile, headerText)
 
         return
 
@@ -89,25 +94,21 @@ class CueFileTarget(Target):
         if( track.ignore is not True):
             # compute the time since the start of the show
             tDelta = startTime - self.initialTime
-            
-            minutes = int(tDelta.total_seconds() / 60)
-            seconds = int(tDelta.total_seconds() % 60)
 
             self.trackCount += 1
 
-            trackText = (f"  TRACK {self.trackCount:02} AUDIO\n"
-                        f'    TITLE "{track.title}"\n'
-                        f'    PERFORMER "{track.artist}"\n'
-                        f'    INDEX 01 {minutes:02}:{seconds:02}:00\n')
+            tFormat = self.getTimeStamp(tDelta)
 
-            self.logToFile(self.cueFile, trackText)
+            trackText = (f'"{track.title}",{tFormat},,{track.getArtworkPath()},false\n')
+
+            self.logToFile(self.csvFile, trackText)
 
         return
 
     def close(self):
-        print("Closing Cue File...")
+        print("Closing Csv File...")
 
-        self.cueFile.close()
+        self.csvFile.close()
 
         return
 

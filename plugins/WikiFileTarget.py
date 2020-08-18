@@ -23,13 +23,13 @@ from Target import Target
 import os
 import sys
 import configparser
+import logging
 
 import time
-import datetime
-from datetime import date
 
 class WikiFileTarget(Target):
     pluginName = "Wiki File Writer"
+    enableArchive = True
     episodeNumber = "XX"
     showArtist = ""
 
@@ -38,8 +38,14 @@ class WikiFileTarget(Target):
 
     wikiFile = None
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
+        logger = logging.getLogger("wiki updater")
+        
         self.episodeNumber = episode
+
+        if(episodeDate):
+            self.episodeDate = episodeDate
+            logger.debug(f"overriding date with {self.episodeDate}")
 
         # read config entries
         try:
@@ -47,10 +53,10 @@ class WikiFileTarget(Target):
             self.archiveURL = config.get('ListCommon', 'archiveURL')
             self.showArtist = config.get('ListCommon', 'showArtist')
         except configparser.NoSectionError:
-            print("ListCommon: No [ListCommon] section in config")
+            logger.error("ListCommon: No [ListCommon] section in config")
             return
         except configparser.NoOptionError:
-            print("ListCommon: Missing values in config")
+            logger.error("ListCommon: Missing values in config")
             return
 
         # if I gave a shit about non-unix platforms I might
@@ -61,9 +67,9 @@ class WikiFileTarget(Target):
 
         self.filePath = os.path.expanduser(self.filePath)
 
-        self.archiveURL = date.today().strftime(self.archiveURL)
 
-        fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=datetime.datetime.now())
+        fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=self.episodeDate)
+        self.archiveURL = f"{self.archiveURL}{fileDate}.mp3"
 
         headerText = ""
 
@@ -74,7 +80,7 @@ class WikiFileTarget(Target):
 
         headerText += "Show #" + self.episodeNumber + " - "
 
-        headerText += self.createLongDate()
+        headerText += self.getLongDate()
 
         if(self.archiveURL != ""):
             headerText += "]"

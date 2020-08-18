@@ -36,7 +36,10 @@ class AudioHijackTarget(Target):
     initArtwork = ""
     coverImagePath = ""
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
+        if(episodeDate):
+            self.episodeDate = episodeDate
+        
         try:
             self.initTitle = config.get('AudioHijackTarget', 'initTitle')
             self.initArtist = config.get('AudioHijackTarget', 'initArtist')
