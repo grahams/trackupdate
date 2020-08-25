@@ -28,6 +28,8 @@ import logging
 import time
 import datetime
 
+import csv
+
 from datetime import date
 
 class CsvFileTarget(Target):
@@ -38,8 +40,6 @@ class CsvFileTarget(Target):
     episodeNumber = None
 
     filePath = ""
-
-    csvFile = None
 
     trackCount = 0
     initialTime = None
@@ -72,15 +72,17 @@ class CsvFileTarget(Target):
         self.filePath = os.path.expanduser(self.filePath)
 
         fileDate = '{dt:%Y}{dt:%m}{dt:%d}'.format(dt=self.episodeDate)
+        fullFilePath = self.filePath + fileDate + ".csv"
+        showYear = '{dt:%Y}'.format(dt=self.episodeDate)
 
-        headerText = f'PODCAST,"{self.showTitle}",,,\n'
-        headerText += f'TITLE,"{self.getEpisodeTitle(self.episodeNumber)}",,,\n'
-        headerText += f'AUTHOR,"{self.showArtist}",,,\n'
-        headerText += f'DESCRIPTION,,,,\n'
-        headerText += 'YEAR,{dt:%Y},,,\n'.format(dt=self.episodeDate)
+        self.csvFile = open(fullFilePath, 'w', newline='')
+        self.csvWriter = csv.writer(self.csvFile)
 
-        self.csvFile = open(self.filePath + fileDate + ".csv", 'w+')
-        self.logToFile(self.csvFile, headerText)
+        self.csvWriter.writerow(["PODCAST",self.showTitle, None, None, None])
+        self.csvWriter.writerow(["TITLE",self.getEpisodeTitle(self.episodeNumber), None, None, None])
+        self.csvWriter.writerow(["AUTHOR",self.showArtist, None, None, None])
+        self.csvWriter.writerow(["DESCRIPTION", None, None, None, None])
+        self.csvWriter.writerow(["YEAR", showYear, None, None, None])
 
         return
 
@@ -99,9 +101,8 @@ class CsvFileTarget(Target):
 
             tFormat = self.getTimeStamp(tDelta)
 
-            trackText = (f'"{track.title}",{tFormat},,{track.getArtworkPath()},false\n')
-
-            self.logToFile(self.csvFile, trackText)
+            self.csvWriter.writerow([track.title, tFormat, None,
+                                    track.getArtworkPath(), False])
 
         return
 
