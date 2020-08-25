@@ -36,7 +36,7 @@ class BackblazeTarget(Target):
     appKeyId = None
     bucketName = None
 
-    def __init__(self, config, episode):
+    def __init__(self, config, episode, episodeDate):
         try:
             self.appKey = config.get('BackblazeTarget', 'appKey')
             self.appKeyId = config.get('BackblazeTarget', 'appKeyId')
