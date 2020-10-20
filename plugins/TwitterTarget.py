@@ -54,10 +54,10 @@ class TwitterTarget(Target):
                 self.OAuthConsumerKey = config.get('TwitterTarget', 'OAuthConsumerKey')
                 self.OAuthConsumerSecret = config.get('TwitterTarget', 'OAuthConsumerSecret')
             except configparser.NoSectionError:
-                logger.error("TwitterTarget: No [TwitterTarget] section in config")
+                self.logger.error("TwitterTarget: No [TwitterTarget] section in config")
                 return
             except configparser.NoOptionError:
-                logger.error("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
+                self.logger.error("TwitterTarget: OAuth Consumer Key/Secret unspecified in config")
                 return
 
             # try to read the OAuth user tokens from the config file,
@@ -66,10 +66,10 @@ class TwitterTarget(Target):
                 self.OAuthUserToken = config.get('TwitterTarget', 'OAuthUserToken')
                 self.OAuthUserTokenSecret = config.get('TwitterTarget', 'OAuthUserTokenSecret')
             except configparser.NoSectionError:
-                logger.error("TwitterTarget: No [TwitterTarget] section in config")
+                self.logger.error("TwitterTarget: No [TwitterTarget] section in config")
                 return
             except configparser.NoOptionError:
-                logger.error("TwitterTarget: Need to obtain OAuth Authorization.")
+                self.logger.error("TwitterTarget: Need to obtain OAuth Authorization.")
                 self.obtainAuth()
 
             # this is an optional config value containing a tweet to be 
@@ -100,7 +100,7 @@ class TwitterTarget(Target):
                 try:
                     self.t.PostUpdate(self.initTweet)
                 except twitter.TwitterError:
-                    logger.error("twitter error")
+                    self.logger.error("twitter error")
         return
 
     def close(self):
@@ -111,7 +111,7 @@ class TwitterTarget(Target):
                     try:
                         self.t.PostUpdate(self.closeTweet)
                     except twitter.TwitterError:
-                        logger.error("twitter error")
+                        self.logger.error("twitter error")
                 return
 
     def logTrack(self, track, startTime):
@@ -129,7 +129,7 @@ class TwitterTarget(Target):
                         else:
                             self.t.PostUpdate(tweet)
                     except twitter.TwitterError:
-                        logger.error("twitter error")
+                        self.logger.error("twitter error")
 
     def obtainAuth(self):
         import urlparse
