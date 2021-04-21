@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+import requests 
 
-import os
+from dataclasses import dataclass
+from pathlib import Path
+from os.path import expanduser
 
 @dataclass
 class Track:
@@ -8,24 +10,25 @@ class Track:
     artist: str
     album: str
     length: str
-    artwork: str
-    artworkFilePath: str
-    artworkBaseURL: str
+    artworkURL: str
     uniqueId: str
     ignore: bool
+    
+    def fetchArtwork(self, coverImagePath):
+        p = Path(f'{expanduser(coverImagePath)}/{self.uniqueId}.jpg')
 
+        if(p.is_file() == False):
+            with p.open(mode='wb') as handle:
+                response = requests.get(self.artworkURL, stream=True)
 
-    def getArtworkPath(self):
-        unglobbed = os.path.expanduser(self.artworkFilePath) 
+                if not response.ok:
+                    return False
 
-        if(not unglobbed.endswith("/")):
-            unglobbed += "/"
+                for block in response.iter_content(1024):
+                    if not block:
+                        return False
 
-        return f"{unglobbed}{self.artwork}"
+                    handle.write(block)
 
-    def getArtworkURL(self):
-        if(not self.artworkBaseURL.endswith("/")):
-            self.artworkBaseURL += "/"
-
-        return f"{self.artworkBaseURL}{self.artwork}"
-
+        return str(p)
+        

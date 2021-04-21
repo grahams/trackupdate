@@ -31,17 +31,21 @@ import subprocess
 import json
 import traceback
 import sqlite3
+import requests
+import re
 
+from urllib.parse import quote
 from datetime import datetime
 from operator import attrgetter
 from Track import Track
+from pathlib import Path
 
 pluginList = []
 
 class TrackUpdate(object):
     introAlbum = ""
 
-    currentTrack = Track(None,None,None,None,None,None,None,None,None)
+    currentTrack = Track(None,None,None,None,None,None,None)
 
     coverImagePath = ""
     coverImageBaseURL = ""
@@ -192,6 +196,8 @@ Example:
             self.cleanUp()
 
     def liveLoop(self):
+        previousTrack = None
+
         if(self.introAlbum != ""):
             while(1):
                 if(self.startTime==-1):
@@ -227,21 +233,48 @@ Example:
                                         self.coverImagePath],
                                                         text=True))
 
-            if(len(track) > 0):
-                self.processCurrentTrack(track)
-            elif(self.useStopValues == 'True'):
-                stopTrack = Track(self.stopTitle, 
-                                    self.stopArtist, 
-                                    self.stopAlbum, 
-                                    "9:99",
-                                    self.stopArtwork, 
-                                    self.coverImagePath,
-                                    self.coverImageBaseURL,
-                                    "", 
-                                    False)
-                self.updateTrack(stopTrack, self.startTime)
+            # this is jank but don't keep updating the track unnecessarily
+            if(previousTrack != track):
+                previousTrack = track
+
+                if(len(track) > 0):
+                    self.processCurrentTrack(track)
+                elif(self.useStopValues == 'True'):
+                    stopTrack = Track(self.stopTitle, 
+                                        self.stopArtist, 
+                                        self.stopAlbum, 
+                                        "9:99",
+                                        None,
+                                        "", 
+                                        False)
+                    self.updateTrack(stopTrack, datetime.now())
 
             time.sleep(self.pollTime)
+
+    def searchArtwork(self, searchArtist, searchAlbum):
+        searchUrl = f'https://itunes.apple.com/search?term={quote(searchArtist)}&entity=musicArtist&limit=1'
+        artistSearch = requests.get(searchUrl).json()
+
+        url100 = None
+        url500 = None
+
+        if(artistSearch['resultCount'] > 0):
+            artistId = artistSearch["results"][0]["artistId"]
+
+            s = f"https://itunes.apple.com/lookup?id={artistId}&entity=album"
+            albumSearch = requests.get(s).json()
+
+            if(albumSearch['resultCount'] > 0):
+                for album in albumSearch["results"]:
+                    if(album["wrapperType"] == "collection"): 
+                        if(album['collectionName'] == searchAlbum):
+                            url100 = album['artworkUrl100']
+                            break
+
+        if(url100 != None):
+            url500 = re.sub(r'100x100', '500x500', url100)
+
+        return url500
 
     def archiveLoop(self):
         for row in self.c.execute("SELECT * FROM trackupdate WHERE episodeNumber = '%s' ORDER BY startTime" % self.episodeNumber):
@@ -251,17 +284,15 @@ Example:
             artist = row[3]
             album = row[4]
             length = row[5]
-            artworkFileName = row[6]
-            sTime = row[7]
-            ignore = row[8]
+            sTime = row[6]
+            ignore = row[7]
+            artworkUrl = row[8]
 
             t = Track(title,
                         artist,
                         album,
                         length,
-                        artworkFileName,
-                        self.coverImagePath,
-                        self.coverImageBaseURL,
+                        artworkUrl,
                         uniqueId,
                         ignore)
             
@@ -277,7 +308,7 @@ Example:
             try:
                 plugin.close()
             except Exception as e:
-                logging.error(plugin + ": Error trying to close target")
+                logging.error(plugin.pluginName + ": Error trying to close target")
                 logging.error(''.join(traceback.format_tb(sys.exc_info()[2])))
     
 
@@ -286,7 +317,6 @@ Example:
         iName = ""
         iAlbum = ""
         iLength = ""
-        iArtwork = ""
         iId = ""
 
         if('trackArtist' in t.keys()):
@@ -297,25 +327,23 @@ Example:
             iAlbum = t['trackAlbum']
         if('trackLength' in t.keys()):
             iLength = t['trackLength']
-        if('trackArtwork' in t.keys()):
-            iArtwork = t['trackArtwork']
         if('trackId' in t.keys()):
             iId = t['trackId']
 
-        if(iArtwork == "/dev/null"):
-            iArtwork = self.stopArtwork
+        artworkUrl = self.searchArtwork(iArtist,iAlbum)
+
+        if(artworkUrl == None):
+            artworkUrl = f"{self.coverImageBaseURL}/{self.stopArtwork}"
 
         track = Track(iName, 
                       iArtist, 
                       iAlbum, 
                       iLength, 
-                      iArtwork, 
-                      self.coverImagePath,
-                      self.coverImageBaseURL,
+                      artworkUrl,
                       iId, 
                       False)
 
-        self.updateTrack(track, self.startTime)
+        self.updateTrack(track, datetime.now())
 
     def updateTrack(self, track, startTime):
         # make sure the track has actually changed

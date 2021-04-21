@@ -40,6 +40,8 @@ class CsvFileTarget(Target):
     episodeNumber = None
 
     filePath = ""
+    coverImagePath = ""
+    stopArtwork = ""
 
     trackCount = 0
     initialTime = None
@@ -56,6 +58,8 @@ class CsvFileTarget(Target):
             self.filePath = config.get('ListCommon', 'filePath')
             self.showTitle = config.get('ListCommon', 'showTitle')
             self.showArtist = config.get('ListCommon', 'showArtist')
+            self.coverImagePath = config.get('trackupdate', 'coverImagePath')
+            self.stopArtwork = config.get('trackupdate', 'stopArtwork')
         except configparser.NoSectionError:
             logging.error("ListCommon: No [ListCommon] section in config")
             return
@@ -93,6 +97,11 @@ class CsvFileTarget(Target):
         if(self.initialTime == None):
             self.initialTime = startTime
 
+        if( (track.artworkURL != None) and (self.stopArtwork not in track.artworkURL) ):
+            artworkPath = track.fetchArtwork(self.coverImagePath)
+        else:
+            artworkPath = f"{self.coverImagePath}/{self.stopArtwork}"
+
         if( track.ignore is not True):
             # compute the time since the start of the show
             tDelta = startTime - self.initialTime
@@ -102,7 +111,7 @@ class CsvFileTarget(Target):
             tFormat = self.getTimeStamp(tDelta)
 
             self.csvWriter.writerow([track.title, tFormat, None,
-                                    track.getArtworkPath(), False])
+                                    artworkPath, False])
 
         return
 

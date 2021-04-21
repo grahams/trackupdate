@@ -67,13 +67,16 @@ class SqliteTarget(Target):
             artist char(128),
             album char(128),
             length char(128),
-            artworkFileName text(128),
             startTime timestamp(128),
             "ignore" integer(128) NOT NULL DEFAULT(0)
+            artworkUrl text(128),
             );''')
 
 
     def logTrack(self, track, startTime):
+        if(startTime == -1):
+            startTime = datetime.datetime.now()
+
         debool = (0,1)[track.ignore]
         self.c.execute("INSERT INTO trackupdate VALUES (?,?,?,?,?,?,?,?,?)",
                        (self.episodeNumber, 
@@ -82,9 +85,9 @@ class SqliteTarget(Target):
                         track.artist,
                         track.album,
                         track.length,
-                        track.artwork,
-                        datetime.datetime.now(),
-                        debool))
+                        startTime,
+                        debool,
+                        track.artworkURL))
 
         self.conn.commit()
 

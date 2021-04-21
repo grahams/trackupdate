@@ -123,9 +123,9 @@ class TwitterTarget(Target):
                     tweet = tweet[0:280]
 
                     try:
-                        if(track.artwork != "/dev/null/"):
+                        if(track.artworkURL != None):
                             self.t.PostUpdate(tweet,
-                                              media=track.getArtworkPath())
+                                              media=track.artworkURL)
                         else:
                             self.t.PostUpdate(tweet)
                     except twitter.TwitterError:

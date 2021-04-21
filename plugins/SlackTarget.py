@@ -87,32 +87,12 @@ class SlackTarget(Target):
             ]
         }]
 
-        if(track.artwork != "/dev/null"):
-            artworkUrl = track.getArtworkURL()
-
-        if(artworkUrl is not None):
-            # Since it takes awhile for the images to propagate, let's make
-            # sure they exist first
-            waitingUpload = True
-            failureCounter = 5
-
-            while(waitingUpload and (failureCounter > 0) ):
-                imgRequest = requests.get(artworkUrl)
-
-                self.logger.debug("imgRequest status: " + str(imgRequest.status_code))
-
-                if(imgRequest.status_code == 404):
-                    self.logger.debug(f"Cover Image 404: 5s Delay. {failureCounter} left")
-                    failureCounter = failureCounter - 1;
-                    time.sleep(5);
-                else:
-                    blocks[0]["accessory"] = {
-                                "type": "image",
-                                "image_url": artworkUrl,
-                                "alt_text": f"Cover image of {postString}"
-                    }
-                    failureCounter = -1
-                    waitingUpload = False
+        if(track.artworkURL != "" and track.artworkURL != None):
+            blocks[0]["accessory"] = {
+                        "type": "image",
+                        "image_url": track.artworkURL,
+                        "alt_text": f"Cover image of {postString}"
+            }
 
         if( track.ignore is not True):
             payload = { 'text': postString, 'blocks': blocks }

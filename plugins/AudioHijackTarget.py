@@ -35,6 +35,7 @@ class AudioHijackTarget(Target):
     initTime = ""
     initArtwork = ""
     coverImagePath = ""
+    stopArtwork = ""
 
     def __init__(self, config, episode, episodeDate):
         if(episodeDate):
@@ -47,6 +48,7 @@ class AudioHijackTarget(Target):
             self.initTime = config.get('AudioHijackTarget', 'initTime')
             self.initDestination = config.get('AudioHijackTarget', 'initDestination')
             self.coverImagePath = config.get('trackupdate', 'coverImagePath')
+            self.stopArtwork = config.get('trackupdate', 'stopArtwork')
         except configparser.NoSectionError:
             print("AudioHijackTarget: No [AudioHijackTarget] section in config")
             return
@@ -61,9 +63,7 @@ class AudioHijackTarget(Target):
                       self.initArtist, 
                       self.initAlbum,
                       self.initTime,
-                      self.initArtwork,
-                      self.coverImagePath,
-                      "",
+                      None,
                       "",
                       False)
 
@@ -73,13 +73,18 @@ class AudioHijackTarget(Target):
         os.remove(self.initDestination)
 
     def logTrack(self, track, startTime):
+        artworkPath = ""
 
-        fullPath = self.coverImagePath + track.artwork
+        if( (track.artworkURL != None) and (self.stopArtwork not in track.artworkURL) ):
+            artworkPath = track.fetchArtwork(self.coverImagePath)
+        else:
+            artworkPath = f"{self.coverImagePath}/{self.stopArtwork}"
+
 
         fh = open(self.initDestination, 'w')
         fh.write(f"Title: {track.title}\n")
         fh.write(f"Artist: {track.artist}\n")
         fh.write(f"Album: {track.album}\n")
         fh.write(f"Time: {track.length}\n")
-        fh.write(f"Artwork: file://{urllib.parse.quote(fullPath)}\n")
+        fh.write(f"Artwork: file://{urllib.parse.quote(artworkPath)}\n")
         fh.close()
