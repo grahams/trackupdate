@@ -2,8 +2,8 @@ import sqlite3
 import datetime
 from datetime import timedelta
 
-deltaSeconds = -29
-episodeNumber = 320
+deltaSeconds = 46
+episodeNumber = 338
 sourceDBPath = "/Users/grahams/src/trackupdate/db/trackupdate.sqlite"
 destDBPath = f"episode-{episodeNumber}.sqlite"
 
@@ -21,9 +21,9 @@ destCursor.execute('''
         artist char(128),
         album char(128),
         length char(128),
-        artworkFileName text(128),
         startTime timestamp(128),
         "ignore" integer(128) NOT NULL DEFAULT(0)
+        artworkUrl text(128),
         );''')
 
 for row in sourceCursor.execute('''
@@ -37,9 +37,9 @@ for row in sourceCursor.execute('''
     artist = row[3]
     album = row[4]
     length = row[5]
-    artworkFileName = row[6]
-    sTime = row[7]
-    ignore = row[8]
+    sTime = row[6]
+    ignore = row[7]
+    artworkUrl = row[8]
 
     beforeTime = datetime.datetime.fromisoformat(sTime)
     sTime = beforeTime + timedelta(seconds = deltaSeconds)
@@ -51,11 +51,10 @@ for row in sourceCursor.execute('''
                        artist,
                        album,
                        length,
-                       artworkFileName,
+                       artworkUrl,
                        sTime,
                        ignore))
     destConn.commit()
-
 
 sourceConn.close()
 destConn.close()
