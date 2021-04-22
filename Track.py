@@ -1,4 +1,5 @@
 import requests 
+import logging
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,7 @@ class Track:
     ignore: bool
     
     def fetchArtwork(self, coverImagePath):
+        logger = logging.getLogger("track base class")
         p = Path(f'{expanduser(coverImagePath)}/{self.uniqueId}.jpg')
 
         if(p.is_file() == False):
@@ -29,6 +31,8 @@ class Track:
                         return False
 
                     handle.write(block)
+        else:
+            logger.debug("Artwork file already exists. Skipping")
 
         return str(p)
         

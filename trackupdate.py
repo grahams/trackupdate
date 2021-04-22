@@ -251,28 +251,22 @@ Example:
 
             time.sleep(self.pollTime)
 
-    def searchArtwork(self, searchArtist, searchAlbum):
-        searchUrl = f'https://itunes.apple.com/search?term={quote(searchArtist)}&entity=musicArtist&limit=1'
-        artistSearch = requests.get(searchUrl).json()
-
+    def searchArtwork(self, trackName, searchArtist, searchAlbum):
         url100 = None
         url500 = None
 
-        if(artistSearch['resultCount'] > 0):
-            artistId = artistSearch["results"][0]["artistId"]
+        try:
+            searchTerm = quote(f"{searchArtist} {trackName}")
+            searchUrl = f'https://itunes.apple.com/search?term={searchTerm}&entity=song&limit=1'
+            trackSearch = requests.get(searchUrl).json()
 
-            s = f"https://itunes.apple.com/lookup?id={artistId}&entity=album"
-            albumSearch = requests.get(s).json()
-
-            if(albumSearch['resultCount'] > 0):
-                for album in albumSearch["results"]:
-                    if(album["wrapperType"] == "collection"): 
-                        if(album['collectionName'] == searchAlbum):
-                            url100 = album['artworkUrl100']
-                            break
-
-        if(url100 != None):
-            url500 = re.sub(r'100x100', '500x500', url100)
+            if(trackSearch['resultCount'] > 0):
+                url100 = trackSearch["results"][0]["artworkUrl100"]
+                url500 = re.sub(r'100x100', '500x500', url100)
+        except requests.exceptions.RequestException as e:
+            print(f"Cover image search failed: {e}")
+        except json.JSONDecodeError as e:
+            print(f"Cover image JSON decode failed: {e}")
 
         return url500
 
@@ -330,9 +324,10 @@ Example:
         if('trackId' in t.keys()):
             iId = t['trackId']
 
-        artworkUrl = self.searchArtwork(iArtist,iAlbum)
+        artworkUrl = self.searchArtwork(iName,iArtist,iAlbum)
 
         if(artworkUrl == None):
+            logging.debug("No artwork found in search, using default")
             artworkUrl = f"{self.coverImageBaseURL}/{self.stopArtwork}"
 
         track = Track(iName, 
