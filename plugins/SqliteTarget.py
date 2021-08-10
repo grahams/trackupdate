@@ -68,8 +68,8 @@ class SqliteTarget(Target):
             album char(128),
             length char(128),
             startTime timestamp(128),
-            "ignore" integer(128) NOT NULL DEFAULT(0)
-            artworkUrl text(128),
+            "ignore" integer(128) NOT NULL DEFAULT(0),
+            artworkUrl text(128)
             );''')
 
 
