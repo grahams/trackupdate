@@ -80,6 +80,9 @@ enabled: True
 [CsvFileTarget]
 enabled: True
 
+[UTCsvFileTarget]
+enabled: True
+
 [WikiFileTarget]
 enabled: True
 
