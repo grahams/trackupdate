@@ -83,9 +83,9 @@ class AudioHijackTarget(Target):
         track.title = track.title.replace("-", " ")
 
         fh = open(self.initDestination, 'w')
-        fh.write(f"Title: { track.title.replace('-', '_') }\n")
-        fh.write(f"Artist: {track.artist.replace('-', '_')}\n")
-        fh.write(f"Album: {track.album.replace('-', '_')}\n")
-        fh.write(f"Time: {track.length.replace('-', '_')}\n")
+        fh.write(f"Title: { track.title.replace(' - ', '-') }\n")
+        fh.write(f"Artist: {track.artist.replace(' - ', '-')}\n")
+        fh.write(f"Album: {track.album.replace(' - ', '-')}\n")
+        fh.write(f"Time: {track.length.replace(' - ', '-')}\n")
         fh.write(f"Artwork: file://{urllib.parse.quote(artworkPath)}\n")
         fh.close()
