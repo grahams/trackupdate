@@ -35,7 +35,7 @@ import requests
 import re
 
 from urllib.parse import quote
-from datetime import datetime
+from datetime import datetime,date
 from operator import attrgetter
 from Track import Track
 from pathlib import Path
@@ -162,6 +162,13 @@ Example:
                     sys.exit()
                 else:
                     assert False, "unhandled option"
+
+        # default stopArtwork if empty
+        if(self.stopArtwork == ""):
+            todayName = date.today().strftime("%Y%m%d.jpg")
+            self.stopArtwork = todayName
+
+        self.logger.debug(f"self.stopArtwork is {self.stopArtwork}")
 
         try:
             if(self.useDatabase):
