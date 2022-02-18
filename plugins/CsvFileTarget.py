@@ -67,6 +67,11 @@ class CsvFileTarget(Target):
             logging.error("ListCommon: Missing values in config")
             return
 
+        # default stopArtwork if empty
+        if(self.stopArtwork == ""):
+            todayName = date.today().strftime("%Y%m%d.jpg")
+            self.stopArtwork = todayName
+
         # if I gave a shit about non-unix platforms I might
         # try to use the proper path sep here. exercise left 
         # for the reader.
