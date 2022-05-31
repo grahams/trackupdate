@@ -362,7 +362,7 @@ Example:
                 try:
                     plugin.logTrack(track, startTime)
                 except Exception as e:
-                    self.logger.error(plugin + ": Error trying to update track")
+                    self.logger.error(str(plugin) + ": Error trying to update track")
                     self.logger.error(''.join(traceback.format_tb(sys.exc_info()[2])))
 
     def loadPlugins(self, config):
