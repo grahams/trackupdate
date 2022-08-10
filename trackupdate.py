@@ -209,9 +209,7 @@ Example:
             while(1):
                 if(self.startTime==-1):
                     try:
-                        trackJson = subprocess.check_output(["osascript",
-                                        self.pollScriptPath,
-                                        self.coverImagePath])
+                        trackJson = subprocess.check_output(["util/swinsian-track-grabber"])
                         track = json.loads(trackJson)
 
                     except subprocess.CalledProcessError:
@@ -235,9 +233,7 @@ Example:
                     break
 
         while(1):
-            track = json.loads(subprocess.check_output(["osascript",
-                                        self.pollScriptPath,
-                                        self.coverImagePath],
+            track = json.loads(subprocess.check_output(["util/swinsian-track-grabber"],
                                                         text=True))
 
             # this is jank but don't keep updating the track unnecessarily
