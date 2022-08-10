@@ -35,13 +35,9 @@ from datetime import date
 class UTCsvFileTarget(Target):
     pluginName = "UT CSV File Writer"
     enableArchive = True
-    showTitle = ""
-    showArtist = ""
     episodeNumber = None
 
     filePath = ""
-    coverImagePath = ""
-    stopArtwork = ""
 
     trackCount = 0
     initialTime = None
@@ -56,10 +52,6 @@ class UTCsvFileTarget(Target):
         # read config entries
         try:
             self.filePath = config.get('ListCommon', 'filePath')
-            self.showTitle = config.get('ListCommon', 'showTitle')
-            self.showArtist = config.get('ListCommon', 'showArtist')
-            self.coverImagePath = config.get('trackupdate', 'coverImagePath')
-            self.stopArtwork = config.get('trackupdate', 'stopArtwork')
         except configparser.NoSectionError:
             logging.error("ListCommon: No [ListCommon] section in config")
             return
@@ -81,12 +73,6 @@ class UTCsvFileTarget(Target):
 
         self.csvFile = open(fullFilePath, 'w', newline='')
         self.csvWriter = csv.writer(self.csvFile)
-
-#         self.csvWriter.writerow(["PODCAST",self.showTitle, None, None, None])
-#         self.csvWriter.writerow(["TITLE",self.getEpisodeTitle(self.episodeNumber), None, None, None])
-#         self.csvWriter.writerow(["AUTHOR",self.showArtist, None, None, None])
-#         self.csvWriter.writerow(["DESCRIPTION", None, None, None, None])
-#         self.csvWriter.writerow(["YEAR", showYear, None, None, None])
 
         return
 

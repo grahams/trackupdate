@@ -80,12 +80,17 @@ class AudioHijackTarget(Target):
         else:
             artworkPath = f"{self.coverImagePath}/{self.stopArtwork}"
 
+        title = track.title or "";
+        artist = track.artist or "";
+        album = track.album or "";
+        length = track.length or "";
+
         track.title = track.title.replace("-", " ")
 
         fh = open(self.initDestination, 'w')
-        fh.write(f"Title: { track.title.replace(' - ', '-') }\n")
-        fh.write(f"Artist: {track.artist.replace(' - ', '-')}\n")
-        fh.write(f"Album: {track.album.replace(' - ', '-')}\n")
-        fh.write(f"Time: {track.length.replace(' - ', '-')}\n")
+        fh.write(f"Title: {title.replace(' - ', '-') }\n")
+        fh.write(f"Artist: {artist.replace(' - ', '-')}\n")
+        fh.write(f"Album: {album.replace(' - ', '-')}\n")
+        fh.write(f"Time: {length.replace(' - ', '-')}\n")
         fh.write(f"Artwork: file://{urllib.parse.quote(artworkPath)}\n")
         fh.close()
