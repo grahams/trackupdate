@@ -74,6 +74,8 @@ class UTCsvFileTarget(Target):
         self.csvFile = open(fullFilePath, 'w', newline='')
         self.csvWriter = csv.writer(self.csvFile)
 
+        self.csvWriter.writerow(["artist", "title", "timecode"])
+
         return
 
     def logTrack(self, track, startTime):
