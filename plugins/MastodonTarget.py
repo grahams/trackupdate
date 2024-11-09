@@ -26,6 +26,10 @@ import logging
 import mastodon
 from mastodon import Mastodon
 
+from threading import Thread
+
+import time
+
 class MastodonTarget(Target):
     logger = logging.getLogger("mastodon updater")
     
@@ -88,6 +92,15 @@ class MastodonTarget(Target):
             return
 
     def logTrack(self, track, startTime):
+        tr = track
+        st = startTime
+
+        background_thread = Thread(target=self.logTrackInternal,
+                                   args=(tr,st,))
+
+        background_thread.start()
+
+    def logTrackInternal(self, track, startTime):
         if( track.ignore is not True):
             if( self.m != None ):
                 toot = track.artist + " - " + track.title
