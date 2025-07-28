@@ -26,28 +26,8 @@ initAlbum: grahams' completely normal radio programme
 initDestination: ~/Music/Audio Hijack/NowPlaying.txt
 initTime: 9:99
 
-[LadioCastTarget]
-enabled: True
-initTitle: Show will begin shortly
-initArtist: grahams
-initAlbum: grahams' completely normal radio programme
-initTime: 9:99
-
 [StdioTarget]
 enabled: True
-
-[MastodonTarget]
-enabled: True
-initToot: The show is on!         # Optional: Sent when plugin inits
-closeToot: Thanks for listening!  # Optional: Sent when plugin closes
-
-AccessToken: <mastodon access token>
-ApiBaseUrl: <mastodon apu base url> # Ex: https://botsin.space
-
-[SlackTarget]
-enabled: True
-#see https://api.slack.com/incoming-webhooks for info on slack webhooks
-webhookURL : <slack webhook url>
 
 [SqliteTarget]
 enabled: False
@@ -73,11 +53,5 @@ enabled: True
 [WikiFileTarget]
 enabled: True
 
-[BlogFileTarget]
+[HugoBlogTarget]
 enabled: True
-
-[BackblazeTarget]
-enabled: True
-appKey: xx
-appKeyId: yy
-bucketName: radio-images
