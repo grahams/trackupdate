@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import sqlite3
 import argparse
@@ -11,16 +13,23 @@ from tabulate import tabulate
 class TimeShift(object):
     tracks = []
     dbPath = "/Users/grahams/src/trackupdate/db/trackupdate.sqlite"
-
+    
     def __init__(self, argv):
-        self.readEpisode(175)
-        #self.insertTrack(31, 407, None, "INSERTED", "INSERTOR", "THE INSERTED", "4:20",
+        epNum = 538
+        self.readEpisode(epNum)
+        #self.insertTrack(31, epNum, None, "INSERTED", "INSERTOR", "THE INSERTED", "4:20",
                     #False, None)
-        #self.writeEpisode(407)
-        #self.importJson(175, "/Users/grahams/aatemp/News/20120618.json")
+        #self.writeEpisode(epNum)
+        #self.importJson(epNum, "/Users/grahams/aatemp/20221221.json")
+        self.updateTrackRange(26,29,-7)
+
+        # SET INDEX ONE PAST THE FINAL TRACK YOU WISH TO UPDATE
+        #self.updateTrackRange(11,35,150)
+        #self.updateTrackRange(8,37,-8)
         self.printTable()
-        #self.updateTrackRange(39,43,-7)
-        #self.writeEpisode(175)
+
+        #self.deleteEpisode(epNum)
+        #self.writeEpisode(epNum)
 
     def readEpisode(self, episodeNumber):
         sourceConn = sqlite3.connect(self.dbPath)
@@ -28,7 +37,7 @@ class TimeShift(object):
         firstTime = None
 
         for row in sourceCursor.execute('''
-                SELECT * FROM trackupdate 
+                SELECT * FROM trackupdate
                 WHERE episodeNumber = '%s'
                 ORDER BY startTime''' % episodeNumber):
 
@@ -54,6 +63,16 @@ class TimeShift(object):
 
         sourceConn.close()
 
+    def deleteEpisode(self, episodeNumber):
+        conn = sqlite3.connect(self.dbPath)
+        cursor = conn.cursor()
+
+        cursor.execute('''DELETE FROM trackupdate WHERE episodeNumber = %s;''' % episodeNumber)
+
+        conn.commit()
+        conn.close()
+
+
     def updateTrackRange(self, start, end, deltaSeconds):
         for x in range(start,end):
             track = self.tracks[x]
@@ -68,7 +87,7 @@ class TimeShift(object):
 
         for x in range(len(data)):
             track = data[x]
-            self.insertTrack(x, 175, track['uniqueId'], track['trackName'],
+            self.insertTrack(x, episodeNumber, track['trackId'], track['trackName'],
                              track['trackArtist'], track['trackAlbum'],
                              track['trackLength'], track['trackDuration'],
                              False, "")
@@ -79,8 +98,8 @@ class TimeShift(object):
             if(len(self.tracks) > 0):
                 firstTime = self.tracks[0]['sTime']
             else:
-                #firstTime = datetime.now()
-                firstTime = datetime.fromisoformat("2022-08-07 14:05:11.145024")
+                firstTime = datetime.now()
+                #firstTime = datetime.fromisoformat("2022-08-07 14:05:11.145024")
 
             beforeTime = firstTime
             beforeSeconds = 0
@@ -111,7 +130,7 @@ class TimeShift(object):
             self.updateTrackRange(position+1, len(self.tracks), duration)
 
     def writeEpisode(self, episodeNumber):
-        destConn = sqlite3.connect(dbPath)
+        destConn = sqlite3.connect(self.dbPath)
         destCursor = destConn.cursor()
 
         destCursor.execute('''
