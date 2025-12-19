@@ -1,0 +1,31 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Debug: m3u_import",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/util/m3u_import.py",
+            "args": [
+                "-e", "99992",
+                "-d", "2025-12-20 22:33:50",
+                "-f", "~/aatemp/radio show 463 (solstice 2023).m3u8"
+                // "-o", "~/aatemp/test.mp3"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
