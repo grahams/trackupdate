@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='editor.css') }}">
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Track Editor</h1>
+            <div class="controls">
+                <select id="episodeSelect">
+                    <option value="">Select Episode...</option>
+                </select>
+                <button id="newEpisodeBtn">New Episode</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="upload-section">
+                    <h2>Audio File</h2>
+                    <div id="dropZone" class="drop-zone">
+                        <p>Drop audio file here or click to browse</p>
+                        <input type="file" id="fileInput" accept="audio/*" style="display: none;">
+                    </div>
+                    <div id="audioInfo" class="audio-info" style="display: none;">
+                        <p id="fileName"></p>
+                        <audio id="audioPlayer" controls></audio>
+                    </div>
+                </div>
+
+                <div class="waveform-section">
+                    <h2>Waveform</h2>
+                    <div class="waveform-container">
+                        <div id="waveform"></div>
+                    </div>
+                    <div class="waveform-controls">
+                        <button id="playPauseBtn">Play</button>
+                        <button id="zoomInBtn">Zoom In</button>
+                        <button id="zoomOutBtn">Zoom Out</button>
+                        <label class="cascade-toggle">
+                            <input type="checkbox" id="cascadeShiftMode">
+                            Cascade Shift
+                        </label>
+                        <span id="timeDisplay">0:00 / 0:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="tracks-section">
+                    <h2>Tracks</h2>
+                    <div class="track-controls">
+                        <button id="addTrackBtn">Add Track</button>
+                        <button id="shiftTracksBtn">Shift Selected</button>
+                    </div>
+                    <div id="tracksList" class="tracks-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="trackModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Edit Track</h2>
+            <form id="trackForm">
+                <input type="hidden" id="trackId">
+                <label>
+                    Title:
+                    <input type="text" id="trackTitle" required>
+                </label>
+                <label>
+                    Artist:
+                    <input type="text" id="trackArtist" required>
+                </label>
+                <label>
+                    Album:
+                    <input type="text" id="trackAlbum">
+                </label>
+                <label>
+                    Length (M:SS):
+                    <input type="text" id="trackLength" pattern="[0-9]+:[0-9]{2}" placeholder="4:20">
+                </label>
+                <label>
+                    Start Time (seconds from start):
+                    <input type="number" id="trackStartTime" step="0.1" required>
+                </label>
+                <label>
+                    <input type="checkbox" id="trackIgnore"> Ignore
+                </label>
+                <div class="modal-buttons">
+                    <button type="submit">Save</button>
+                    <button type="button" id="cancelBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="shiftModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Shift Tracks</h2>
+            <form id="shiftForm">
+                <label>
+                    Start Index:
+                    <input type="number" id="shiftStartIndex" min="0" required>
+                </label>
+                <label>
+                    End Index (exclusive):
+                    <input type="number" id="shiftEndIndex" min="0">
+                </label>
+                <label>
+                    Shift by (seconds):
+                    <input type="number" id="shiftDelta" step="0.1" required>
+                </label>
+                <div class="modal-buttons">
+                    <button type="submit">Apply Shift</button>
+                    <button type="button" id="cancelShiftBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='editor.js') }}"></script>
+</body>
+</html>
+

@@ -1,0 +1,450 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px;
+    overflow-x: hidden; /* Prevent horizontal page scroll */
+}
+
+header {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 24px;
+    color: #4a90e2;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+.controls select,
+.controls button {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    background: white;
+}
+
+.controls button {
+    background: #4a90e2;
+    color: white;
+    border: none;
+}
+
+.controls button:hover {
+    background: #357abd;
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 20px;
+    min-width: 0; /* Allow grid items to shrink below content size */
+}
+
+.left-panel,
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0; /* Allow flex items to shrink below content size */
+    overflow: hidden; /* Prevent content from expanding parent */
+}
+
+.upload-section,
+.waveform-section,
+.tracks-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 0; /* Allow sections to shrink */
+    overflow: hidden; /* Prevent content from expanding section */
+}
+
+.upload-section h2,
+.waveform-section h2,
+.tracks-section h2 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.drop-zone {
+    border: 2px dashed #ddd;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #fafafa;
+}
+
+.drop-zone:hover,
+.drop-zone.dragover {
+    border-color: #4a90e2;
+    background: #f0f7ff;
+}
+
+.drop-zone p {
+    color: #666;
+    font-size: 14px;
+}
+
+.audio-info {
+    margin-top: 15px;
+}
+
+.audio-info p {
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+#audioPlayer {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.waveform-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+    margin-bottom: 15px;
+    position: relative;
+    box-sizing: border-box;
+    /* Prevent container from expanding page width */
+    min-width: 0;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+    /* Prevent text selection during drag */
+    user-select: none;
+    /* Custom scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: #4a90e2 #f0f0f0;
+}
+
+.waveform-container::-webkit-scrollbar {
+    height: 12px;
+}
+
+.waveform-container::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 6px;
+}
+
+.waveform-container::-webkit-scrollbar-thumb {
+    background: #4a90e2;
+    border-radius: 6px;
+}
+
+.waveform-container::-webkit-scrollbar-thumb:hover {
+    background: #357abd;
+}
+
+#waveform {
+    min-height: 128px;
+    display: block;
+    /* Let WaveSurfer set the width based on zoom level */
+    width: auto;
+    min-width: 100%;
+}
+
+/* Style track markers as thin vertical lines */
+.wavesurfer-region {
+    border-left: 2px solid;
+    border-right: 2px solid;
+    border-color: inherit;
+    background-color: transparent !important;
+    opacity: 0.9;
+}
+
+.wavesurfer-region:hover {
+    opacity: 1;
+    border-width: 3px;
+}
+
+.waveform-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.cascade-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #666;
+    cursor: pointer;
+    user-select: none;
+}
+
+.cascade-toggle input[type="checkbox"] {
+    cursor: pointer;
+    margin: 0;
+}
+
+.waveform-controls button {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.waveform-controls button:hover {
+    background: #f5f5f5;
+}
+
+#timeDisplay {
+    margin-left: auto;
+    font-size: 13px;
+    color: #666;
+}
+
+.track-controls {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.track-controls button {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.track-controls button:hover {
+    background: #f5f5f5;
+}
+
+.tracks-list {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.track-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #fafafa;
+    transition: all 0.2s;
+}
+
+.track-item:hover {
+    background: #f0f0f0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.track-item.ignored {
+    opacity: 0.6;
+    border-color: #ff6b6b;
+}
+
+.track-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.track-time {
+    font-weight: 600;
+    color: #4a90e2;
+    min-width: 80px;
+    font-size: 13px;
+}
+
+.track-title {
+    font-weight: 500;
+    flex: 1;
+}
+
+.track-artist {
+    color: #666;
+    font-size: 13px;
+}
+
+.track-details {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+.track-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.track-actions button {
+    padding: 4px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.track-actions button:hover {
+    background: #f5f5f5;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: white;
+    margin: 50px auto;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.modal-content form label {
+    display: block;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.modal-content form input[type="text"],
+.modal-content form input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.modal-content form input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+.modal-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.modal-buttons button[type="submit"] {
+    background: #4a90e2;
+    color: white;
+}
+
+.modal-buttons button[type="submit"]:hover {
+    background: #357abd;
+}
+
+.modal-buttons button[type="button"] {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.modal-buttons button[type="button"]:hover {
+    background: #e0e0e0;
+}
+
+/* Scrollbar styling */
+.tracks-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tracks-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.tracks-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.tracks-list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
