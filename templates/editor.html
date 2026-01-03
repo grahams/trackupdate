@@ -17,20 +17,27 @@
                     <option value="">Select Episode...</option>
                 </select>
                 <button id="newEpisodeBtn">New Episode</button>
+                <button id="deleteEpisodeBtn">Delete Episode</button>
+                <button id="exportEpisodeBtn">Export Episode</button>
+                <button id="importEpisodeBtn">Import Episode</button>
+                <button id="importM3uBtn">Import M3U Playlist</button>
             </div>
         </header>
 
         <div class="main-content">
             <div class="left-panel">
-                <div class="upload-section">
-                    <h2>Audio File</h2>
+                <div class="upload-section" id="uploadSection">
+                    <div class="upload-section-header">
+                        <h2>Audio File</h2>
+                        <button id="toggleUploadSection" class="toggle-btn" style="display: none;">−</button>
+                    </div>
                     <div id="dropZone" class="drop-zone">
                         <p>Drop audio file here or click to browse</p>
                         <input type="file" id="fileInput" accept="audio/*" style="display: none;">
                     </div>
                     <div id="audioInfo" class="audio-info" style="display: none;">
                         <p id="fileName"></p>
-                        <audio id="audioPlayer" controls></audio>
+                        <button id="changeAudioBtn" class="change-audio-btn">Change Audio File</button>
                     </div>
                 </div>
 
@@ -43,6 +50,7 @@
                         <button id="playPauseBtn">Play</button>
                         <button id="zoomInBtn">Zoom In</button>
                         <button id="zoomOutBtn">Zoom Out</button>
+                        <button id="insertTrackAtCursorBtn">Insert Track Here</button>
                         <label class="cascade-toggle">
                             <input type="checkbox" id="cascadeShiftMode">
                             Cascade Shift
@@ -58,6 +66,8 @@
                     <div class="track-controls">
                         <button id="addTrackBtn">Add Track</button>
                         <button id="shiftTracksBtn">Shift Selected</button>
+                        <button id="selectAllTracksBtn">Select All</button>
+                        <button id="clearSelectionBtn">Clear Selection</button>
                     </div>
                     <div id="tracksList" class="tracks-list"></div>
                 </div>
@@ -106,15 +116,8 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Shift Tracks</h2>
+            <div id="shiftSelectedInfo" class="shift-selected-info"></div>
             <form id="shiftForm">
-                <label>
-                    Start Index:
-                    <input type="number" id="shiftStartIndex" min="0" required>
-                </label>
-                <label>
-                    End Index (exclusive):
-                    <input type="number" id="shiftEndIndex" min="0">
-                </label>
                 <label>
                     Shift by (seconds):
                     <input type="number" id="shiftDelta" step="0.1" required>
@@ -122,6 +125,61 @@
                 <div class="modal-buttons">
                     <button type="submit">Apply Shift</button>
                     <button type="button" id="cancelShiftBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="importM3uModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Import M3U Playlist</h2>
+            <form id="importM3uForm">
+                <label>
+                    Episode Number:
+                    <input type="number" id="importEpisodeNumber" min="1" required>
+                </label>
+                <label>
+                    Start Date/Time:
+                    <input type="text" id="importStartDatetime" 
+                           placeholder="2024-01-15 20:00:00" 
+                           pattern="\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?" 
+                           required>
+                    <small>Format: YYYY-MM-DD HH:MM:SS or YYYY-MM-DD HH:MM:SS.ffffff</small>
+                </label>
+                <label>
+                    M3U File:
+                    <input type="file" id="importM3uFile" accept=".m3u,.m3u8" required>
+                </label>
+                <div id="importStatus" class="import-status" style="display: none;"></div>
+                <div class="modal-buttons">
+                    <button type="submit">Import</button>
+                    <button type="button" id="cancelImportBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="importEpisodeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Import Episode Data (JSON)</h2>
+            <form id="importEpisodeForm">
+                <label>
+                    Episode Number:
+                    <input type="number" id="importEpisodeDataNumber" min="1" required>
+                </label>
+                <label>
+                    JSON File:
+                    <input type="file" id="importEpisodeFile" accept=".json" required>
+                </label>
+                <div class="import-warning">
+                    <strong>Warning:</strong> This will replace all existing tracks for this episode!
+                </div>
+                <div id="importEpisodeStatus" class="import-status" style="display: none;"></div>
+                <div class="modal-buttons">
+                    <button type="submit">Import</button>
+                    <button type="button" id="cancelImportEpisodeBtn">Cancel</button>
                 </div>
             </form>
         </div>

@@ -86,6 +86,42 @@ header h1 {
     overflow: hidden; /* Prevent content from expanding section */
 }
 
+.upload-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.upload-section-header h2 {
+    margin: 0;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    line-height: 1;
+}
+
+.toggle-btn:hover {
+    color: #333;
+}
+
+.upload-section.collapsed .drop-zone,
+.upload-section.collapsed .audio-info {
+    display: none !important;
+}
+
+.upload-section.collapsed {
+    padding: 10px 20px;
+}
+
 .upload-section h2,
 .waveform-section h2,
 .tracks-section h2 {
@@ -124,9 +160,18 @@ header h1 {
     font-weight: 500;
 }
 
-#audioPlayer {
-    width: 100%;
+.change-audio-btn {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
     margin-top: 10px;
+}
+
+.change-audio-btn:hover {
+    background: #f5f5f5;
 }
 
 .waveform-container {
@@ -175,6 +220,31 @@ header h1 {
     /* Let WaveSurfer set the width based on zoom level */
     width: auto;
     min-width: 100%;
+    position: relative;
+}
+
+/* Hide any audio elements that WaveSurfer creates internally */
+#waveform audio,
+.waveform-container audio,
+.waveform-container ~ audio,
+audio[controls],
+audio {
+    display: none !important;
+    visibility: hidden !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Hide any media controls overlay that might appear */
+.wavesurfer-media-controls,
+[class*="media-controls"],
+[class*="MediaControls"],
+[data-media-controls] {
+    display: none !important;
+    visibility: hidden !important;
 }
 
 /* Style track markers as thin vertical lines */
@@ -196,6 +266,30 @@ header h1 {
     gap: 10px;
     align-items: center;
     flex-wrap: wrap;
+}
+
+.waveform-controls button {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.waveform-controls button:hover {
+    background: #f5f5f5;
+}
+
+#insertTrackAtCursorBtn {
+    background: #4a90e2;
+    color: white;
+    border-color: #4a90e2;
+}
+
+#insertTrackAtCursorBtn:hover {
+    background: #357abd;
+    border-color: #357abd;
 }
 
 .cascade-toggle {
@@ -280,6 +374,26 @@ header h1 {
     gap: 10px;
     align-items: center;
     margin-bottom: 8px;
+}
+
+.track-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.track-checkbox {
+    cursor: pointer;
+    margin: 0;
+}
+
+.track-number {
+    font-size: 12px;
+    color: #666;
+    min-width: 24px;
+    text-align: right;
 }
 
 .track-time {
@@ -387,6 +501,67 @@ header h1 {
 
 .modal-content form input[type="checkbox"] {
     margin-right: 8px;
+}
+
+.modal-content form input[type="file"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.modal-content form small {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.import-status {
+    padding: 12px;
+    border-radius: 4px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.import-status.importing {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #90caf9;
+}
+
+.import-status.success {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+.import-status.error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ef5350;
+}
+
+.import-warning {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+    padding: 10px;
+    border-radius: 4px;
+    margin: 15px 0;
+    font-size: 13px;
+}
+
+.shift-selected-info {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 .modal-buttons {

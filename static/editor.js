@@ -16,6 +16,30 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeWaveform();
     loadEpisodes();
     setupEventListeners();
+    
+    // Watch for any audio elements being added and hide them immediately
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1) { // Element node
+                    if (node.tagName === 'AUDIO' || node.querySelectorAll) {
+                        const audioElements = node.tagName === 'AUDIO' 
+                            ? [node] 
+                            : node.querySelectorAll('audio');
+                        audioElements.forEach(audio => {
+                            audio.style.cssText = 'display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;';
+                            audio.removeAttribute('controls');
+                        });
+                    }
+                }
+            });
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 });
 
 function initializeWaveform() {
@@ -49,7 +73,8 @@ function initializeWaveform() {
         normalize: true,
         minPxPerSec: currentZoom,
         fillParent: false, // Don't fill parent, let it be wider when zoomed
-        interact: true // Enable interaction for scrolling
+        interact: true, // Enable interaction for scrolling
+        backend: 'WebAudio' // Use WebAudio backend instead of MediaElement to avoid HTML5 audio element
     };
     
     if (regionsPlugin) {
@@ -59,6 +84,27 @@ function initializeWaveform() {
     wavesurfer = WaveSurfer.create(config);
 
     wavesurfer.on('ready', () => {
+        // Hide/remove any audio elements that WaveSurfer creates internally
+        const hideAudioElements = () => {
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach(audio => {
+                // Try to get the media element from WaveSurfer and hide it
+                if (wavesurfer.getMediaElement && wavesurfer.getMediaElement()) {
+                    const mediaEl = wavesurfer.getMediaElement();
+                    mediaEl.style.cssText = 'display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;';
+                    mediaEl.removeAttribute('controls');
+                }
+                // Also hide any other audio elements
+                audio.style.cssText = 'display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;';
+                audio.removeAttribute('controls');
+            });
+        };
+        
+        // Hide immediately and also after a short delay
+        hideAudioElements();
+        setTimeout(hideAudioElements, 100);
+        setTimeout(hideAudioElements, 500);
+        
         updateTimeDisplay();
         // Update markers when audio is ready
         if (tracks.length > 0) {
@@ -144,6 +190,11 @@ function setupEventListeners() {
         }
     });
 
+    // Delete episode button
+    document.getElementById('deleteEpisodeBtn').addEventListener('click', () => {
+        deleteEpisode();
+    });
+
     // File upload
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -169,6 +220,25 @@ function setupEventListeners() {
         if (e.target.files.length > 0) {
             handleFileUpload(e.target.files[0]);
         }
+    });
+
+    // Change audio file button
+    document.getElementById('changeAudioBtn').addEventListener('click', () => {
+        document.getElementById('dropZone').style.display = 'block';
+        document.getElementById('audioInfo').style.display = 'none';
+        document.getElementById('uploadSection').classList.remove('collapsed');
+        audioUrl = null;
+        if (wavesurfer) {
+            wavesurfer.empty();
+        }
+    });
+
+    // Toggle upload section
+    document.getElementById('toggleUploadSection').addEventListener('click', () => {
+        const section = document.getElementById('uploadSection');
+        const toggleBtn = document.getElementById('toggleUploadSection');
+        section.classList.toggle('collapsed');
+        toggleBtn.textContent = section.classList.contains('collapsed') ? '+' : '−';
     });
 
     // Waveform controls
@@ -209,8 +279,44 @@ function setupEventListeners() {
         openTrackModal();
     });
 
+    // Insert track at cursor position
+    document.getElementById('insertTrackAtCursorBtn').addEventListener('click', () => {
+        if (!currentEpisode) {
+            alert('Please select an episode first');
+            return;
+        }
+        if (!wavesurfer || !wavesurfer.getDuration()) {
+            alert('Please load an audio file first');
+            return;
+        }
+        const currentTime = wavesurfer.getCurrentTime();
+        openTrackModal(null, currentTime);
+    });
+
     document.getElementById('shiftTracksBtn').addEventListener('click', () => {
         openShiftModal();
+    });
+
+    document.getElementById('selectAllTracksBtn').addEventListener('click', () => {
+        selectAllTracks();
+    });
+
+    document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+        clearSelection();
+    });
+
+    // Import M3U button
+    document.getElementById('importM3uBtn').addEventListener('click', () => {
+        openImportM3uModal();
+    });
+
+    // Export/Import Episode buttons
+    document.getElementById('exportEpisodeBtn').addEventListener('click', () => {
+        exportEpisode();
+    });
+
+    document.getElementById('importEpisodeBtn').addEventListener('click', () => {
+        openImportEpisodeModal();
     });
 
     // Cascade shift mode toggle
@@ -220,9 +326,16 @@ function setupEventListeners() {
 
     // Modal controls
     document.querySelectorAll('.close').forEach(closeBtn => {
-        closeBtn.addEventListener('click', () => {
-            document.getElementById('trackModal').style.display = 'none';
-            document.getElementById('shiftModal').style.display = 'none';
+        closeBtn.addEventListener('click', (e) => {
+            const modal = e.target.closest('.modal');
+            if (modal) {
+                modal.style.display = 'none';
+                // Clear import status
+                const statusDiv = document.getElementById('importStatus');
+                if (statusDiv) {
+                    statusDiv.style.display = 'none';
+                }
+            }
         });
     });
 
@@ -234,6 +347,11 @@ function setupEventListeners() {
         document.getElementById('shiftModal').style.display = 'none';
     });
 
+    document.getElementById('cancelImportBtn').addEventListener('click', () => {
+        document.getElementById('importM3uModal').style.display = 'none';
+        document.getElementById('importStatus').style.display = 'none';
+    });
+
     document.getElementById('trackForm').addEventListener('submit', (e) => {
         e.preventDefault();
         saveTrack();
@@ -243,22 +361,96 @@ function setupEventListeners() {
         e.preventDefault();
         shiftTracks();
     });
+
+    document.getElementById('importM3uForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        importM3u();
+    });
+
+    document.getElementById('importEpisodeForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        importEpisode();
+    });
 }
 
 async function loadEpisodes() {
     try {
         const response = await fetch('/api/episodes');
+        
+        if (!response.ok) {
+            console.error('Error loading episodes:', response.status, response.statusText);
+            return;
+        }
+        
         const episodes = await response.json();
         
+        if (!Array.isArray(episodes)) {
+            console.error('Invalid response format:', episodes);
+            return;
+        }
+        
         const select = document.getElementById('episodeSelect');
+        
+        // Clear existing options except the first one
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        
+        if (episodes.length === 0) {
+            console.log('No episodes found in database');
+            return;
+        }
+        
         episodes.forEach(ep => {
             const option = document.createElement('option');
             option.value = ep;
             option.textContent = `Episode ${ep}`;
             select.appendChild(option);
         });
+        
+        console.log(`Loaded ${episodes.length} episodes`);
     } catch (error) {
         console.error('Error loading episodes:', error);
+        alert('Error loading episodes: ' + error.message);
+    }
+}
+
+async function deleteEpisode() {
+    if (!currentEpisode) {
+        alert('Please select an episode to delete');
+        return;
+    }
+    
+    const episodeToDelete = currentEpisode;
+    const confirmed = confirm(`Are you sure you want to delete Episode ${episodeToDelete}? This will permanently delete all tracks for this episode.`);
+    
+    if (!confirmed) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/episodes/${episodeToDelete}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            // Clear current episode and tracks
+            currentEpisode = null;
+            tracks = [];
+            document.getElementById('episodeSelect').value = '';
+            renderTracks();
+            
+            // Reload episodes list to remove the deleted episode
+            await loadEpisodes();
+            
+            alert(`Episode ${episodeToDelete} has been deleted`);
+        } else {
+            const error = await response.json();
+            alert('Error deleting episode: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error deleting episode:', error);
+        alert('Error deleting episode: ' + error.message);
     }
 }
 
@@ -302,9 +494,13 @@ async function loadTracks(episodeNumber, preserveScroll = false) {
     }
 }
 
+// Track selection state
+let lastSelectedIndex = null;
+
 function renderTracks() {
     const tracksList = document.getElementById('tracksList');
     tracksList.innerHTML = '';
+    lastSelectedIndex = null; // Reset last selected when tracks are re-rendered
 
     tracks.forEach((track, index) => {
         const trackDiv = document.createElement('div');
@@ -316,6 +512,10 @@ function renderTracks() {
         
         trackDiv.innerHTML = `
             <div class="track-header">
+                <label class="track-checkbox-label">
+                    <input type="checkbox" class="track-checkbox" data-index="${index}">
+                    <span class="track-number">${index + 1}</span>
+                </label>
                 <span class="track-time">${timeStr}</span>
                 <span class="track-title">${track.title || 'Untitled'}</span>
                 <span class="track-artist">${track.artist || 'Unknown'}</span>
@@ -333,6 +533,104 @@ function renderTracks() {
         
         tracksList.appendChild(trackDiv);
     });
+    
+    // Add event listeners for range selection
+    setupCheckboxListeners();
+    updateShiftButtonState();
+}
+
+function setupCheckboxListeners() {
+    const checkboxes = document.querySelectorAll('.track-checkbox');
+    let isRangeSelecting = false;
+    
+    checkboxes.forEach((checkbox) => {
+        // Prevent click event first (with capture phase to catch it early)
+        checkbox.addEventListener('click', (e) => {
+            if (isRangeSelecting) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return false;
+            }
+        }, true); // Use capture phase
+        
+        // Use mousedown to catch before checkbox toggles
+        checkbox.addEventListener('mousedown', (e) => {
+            const currentIndex = parseInt(checkbox.dataset.index);
+            const isShiftPressed = e.shiftKey;
+            
+            if (isShiftPressed && lastSelectedIndex !== null) {
+                // Range selection: select all from lastSelectedIndex to currentIndex (inclusive)
+                e.preventDefault();
+                e.stopPropagation();
+                isRangeSelecting = true;
+                
+                const minIndex = Math.min(lastSelectedIndex, currentIndex);
+                const maxIndex = Math.max(lastSelectedIndex, currentIndex);
+                const allCheckboxes = document.querySelectorAll('.track-checkbox');
+
+                const sortedCheckboxes = Array.prototype.slice.call(allCheckboxes, 0);
+                sortedCheckboxes.sort((a, b) => parseInt(a.dataset.index) - parseInt(b.dataset.index));
+                
+                for (let i = minIndex; i <= maxIndex; i++) {
+                    const cb = sortedCheckboxes[i];
+                    cb.checked = true;
+                }
+            } else {
+                // Regular click: update lastSelectedIndex, let default behavior happen
+                lastSelectedIndex = currentIndex;
+                isRangeSelecting = false;
+            }
+        });
+        
+        // Store the expected state during range selection
+        let expectedCheckedState = null;
+        
+        // Update button state on change (but skip during range selection)
+        checkbox.addEventListener('change', (e) => {
+            if (isRangeSelecting && expectedCheckedState !== null) {
+                // During range selection, revert to expected state
+                checkbox.checked = expectedCheckedState;
+            } else {
+                updateShiftButtonState();
+            }
+        });
+    });
+}
+
+function getSelectedTrackIndices() {
+    const checkboxes = document.querySelectorAll('.track-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.dataset.index)).sort((a, b) => a - b);
+}
+
+function updateShiftButtonState() {
+    const selectedIndices = getSelectedTrackIndices();
+    const shiftBtn = document.getElementById('shiftTracksBtn');
+    if (shiftBtn) {
+        if (selectedIndices.length > 0) {
+            shiftBtn.textContent = `Shift Selected (${selectedIndices.length})`;
+            shiftBtn.disabled = false;
+        } else {
+            shiftBtn.textContent = 'Shift Selected';
+            shiftBtn.disabled = false;
+        }
+    }
+}
+
+function selectAllTracks() {
+    const checkboxes = document.querySelectorAll('.track-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateShiftButtonState();
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.track-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateShiftButtonState();
 }
 
 function updateWaveformMarkers() {
@@ -370,8 +668,8 @@ function updateWaveformMarkers() {
                         const markerWidth = 0.1; // Very thin - just a vertical line
                         const region = regionsPlugin.addRegion({
                             start: startTime,
-                            end: Math.min(startTime + markerWidth, duration),
-                            color: track.ignore ? 'rgba(255, 107, 107, 0.8)' : 'rgba(74, 144, 226, 0.8)',
+                            content: track.title,
+                            color: track.ignore ? 'rgba(255, 107, 107, 0.3)' : 'rgba(74, 144, 226, 0.3)',
                             drag: true,
                             resize: false
                         });
@@ -434,10 +732,23 @@ async function handleFileUpload(file) {
             audioUrl = data.url;
             document.getElementById('fileName').textContent = file.name;
             document.getElementById('audioInfo').style.display = 'block';
-            document.getElementById('audioPlayer').src = audioUrl;
+            document.getElementById('dropZone').style.display = 'none';
+            document.getElementById('toggleUploadSection').style.display = 'block';
+            
+            // Collapse the upload section after file is loaded
+            document.getElementById('uploadSection').classList.add('collapsed');
             
             // Load audio into wavesurfer
             wavesurfer.load(audioUrl).then(() => {
+                // Hide any audio elements after loading
+                setTimeout(() => {
+                    const audioElements = document.querySelectorAll('audio');
+                    audioElements.forEach(audio => {
+                        audio.style.cssText = 'display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;';
+                        audio.removeAttribute('controls');
+                    });
+                }, 100);
+                
                 // Set initial zoom after loading
                 if (wavesurfer.getDuration()) {
                     wavesurfer.zoom(currentZoom);
@@ -457,7 +768,7 @@ async function handleFileUpload(file) {
     }
 }
 
-function openTrackModal(trackIndex = null) {
+function openTrackModal(trackIndex = null, startTimeSeconds = null) {
     const modal = document.getElementById('trackModal');
     const form = document.getElementById('trackForm');
     
@@ -476,9 +787,14 @@ function openTrackModal(trackIndex = null) {
         form.reset();
         document.getElementById('trackId').value = '';
         
-        // Set default start time to current playback position or 0
-        const currentTime = wavesurfer ? wavesurfer.getCurrentTime() : 0;
-        document.getElementById('trackStartTime').value = currentTime;
+        // Set start time: use provided value, or current playback position, or 0
+        let startTime = 0;
+        if (startTimeSeconds !== null) {
+            startTime = startTimeSeconds;
+        } else if (wavesurfer) {
+            startTime = wavesurfer.getCurrentTime() || 0;
+        }
+        document.getElementById('trackStartTime').value = startTime;
     }
     
     modal.style.display = 'block';
@@ -649,20 +965,38 @@ async function updateTrackTimeWithCascade(startIndex, newStartTime, deltaSeconds
 }
 
 function openShiftModal() {
+    const selectedIndices = getSelectedTrackIndices();
+    
+    if (selectedIndices.length === 0) {
+        alert('Please select at least one track to shift');
+        return;
+    }
+    
     document.getElementById('shiftModal').style.display = 'block';
-    document.getElementById('shiftStartIndex').value = '';
-    document.getElementById('shiftEndIndex').value = '';
     document.getElementById('shiftDelta').value = '';
+    
+    // Update the modal to show selected tracks info
+    const selectedInfo = document.getElementById('shiftSelectedInfo');
+    if (selectedInfo) {
+        selectedInfo.textContent = `Selected ${selectedIndices.length} track(s): ${selectedIndices.map(i => i + 1).join(', ')}`;
+    }
 }
 
 async function shiftTracks() {
-    const startIndex = parseInt(document.getElementById('shiftStartIndex').value);
-    const endIndexInput = document.getElementById('shiftEndIndex').value;
-    const endIndex = endIndexInput ? parseInt(endIndexInput) : null;
+    const selectedIndices = getSelectedTrackIndices();
+    
+    if (selectedIndices.length === 0) {
+        alert('Please select at least one track to shift');
+        return;
+    }
+    
+    // Backend uses exclusive end index, so we add 1 to the last selected index
+    const startIndex = selectedIndices[0];
+    const endIndex = selectedIndices[selectedIndices.length - 1] + 1; // Exclusive end for backend
     const deltaSeconds = parseFloat(document.getElementById('shiftDelta').value);
 
-    if (isNaN(startIndex) || isNaN(deltaSeconds)) {
-        alert('Please enter valid values');
+    if (isNaN(deltaSeconds)) {
+        alert('Please enter a valid shift value');
         return;
     }
 
@@ -679,6 +1013,9 @@ async function shiftTracks() {
 
         if (response.ok) {
             document.getElementById('shiftModal').style.display = 'none';
+            // Clear selections after shift
+            document.querySelectorAll('.track-checkbox').forEach(cb => cb.checked = false);
+            updateShiftButtonState();
             await loadTracks(currentEpisode);
         } else {
             alert('Error shifting tracks');
@@ -739,6 +1076,192 @@ function scrollToCurrentPosition() {
     
     if (currentPixel < currentScroll || currentPixel > scrollRight) {
         container.scrollLeft = Math.max(0, scrollPosition);
+    }
+}
+
+function openImportM3uModal() {
+    document.getElementById('importM3uModal').style.display = 'block';
+    document.getElementById('importM3uForm').reset();
+    document.getElementById('importStatus').style.display = 'none';
+    
+    // Pre-fill episode number if one is selected
+    if (currentEpisode) {
+        document.getElementById('importEpisodeNumber').value = currentEpisode;
+    }
+    
+    // Pre-fill datetime with current time
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    document.getElementById('importStartDatetime').value = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+async function importM3u() {
+    const episodeNumber = document.getElementById('importEpisodeNumber').value;
+    const startDatetime = document.getElementById('importStartDatetime').value;
+    const fileInput = document.getElementById('importM3uFile');
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select an M3U file');
+        return;
+    }
+    
+    const statusDiv = document.getElementById('importStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.textContent = 'Importing...';
+    statusDiv.className = 'import-status importing';
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('episodeNumber', episodeNumber);
+    formData.append('startDatetime', startDatetime);
+    
+    try {
+        const response = await fetch('/api/import/m3u', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            statusDiv.className = 'import-status success';
+            statusDiv.innerHTML = `
+                <strong>Import successful!</strong><br>
+                ${data.tracksImported} tracks imported<br>
+                ${data.metadataExtracted} tracks with metadata extracted<br>
+                ${data.durationUpdates} durations updated
+            `;
+            
+            // Close modal after a short delay and load the episode
+            setTimeout(() => {
+                document.getElementById('importM3uModal').style.display = 'none';
+                currentEpisode = data.episodeNumber;
+                document.getElementById('episodeSelect').value = data.episodeNumber;
+                loadTracks(data.episodeNumber);
+            }, 2000);
+        } else {
+            statusDiv.className = 'import-status error';
+            statusDiv.textContent = 'Error: ' + (data.error || 'Unknown error');
+        }
+    } catch (error) {
+        statusDiv.className = 'import-status error';
+        statusDiv.textContent = 'Error: ' + error.message;
+    }
+}
+
+function exportEpisode() {
+    if (!currentEpisode) {
+        alert('Please select an episode first');
+        return;
+    }
+
+    if (tracks.length === 0) {
+        alert('No tracks to export');
+        return;
+    }
+
+    // Prepare export data
+    const exportData = {
+        episodeNumber: currentEpisode,
+        firstTime: firstTime ? firstTime.toISOString() : null,
+        tracks: tracks.map(track => ({
+            uniqueId: track.uniqueId,
+            title: track.title,
+            artist: track.artist,
+            album: track.album,
+            length: track.length,
+            startTimeSeconds: track.startTimeSeconds,
+            ignore: track.ignore,
+            artworkUrl: track.artworkUrl
+        }))
+    };
+
+    // Create and download JSON file
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `episode-${currentEpisode}-tracks.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function openImportEpisodeModal() {
+    document.getElementById('importEpisodeModal').style.display = 'block';
+    document.getElementById('importEpisodeForm').reset();
+    document.getElementById('importEpisodeStatus').style.display = 'none';
+    
+    // Pre-fill episode number if one is selected
+    if (currentEpisode) {
+        document.getElementById('importEpisodeDataNumber').value = currentEpisode;
+    }
+}
+
+async function importEpisode() {
+    const episodeNumber = document.getElementById('importEpisodeDataNumber').value;
+    const fileInput = document.getElementById('importEpisodeFile');
+    
+    if (!episodeNumber) {
+        alert('Please enter an episode number');
+        return;
+    }
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select a JSON file');
+        return;
+    }
+
+    if (!confirm(`This will replace all existing tracks for episode ${episodeNumber}. Continue?`)) {
+        return;
+    }
+    
+    const statusDiv = document.getElementById('importEpisodeStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.textContent = 'Importing...';
+    statusDiv.className = 'import-status importing';
+    
+    try {
+        const file = fileInput.files[0];
+        const text = await file.text();
+        const data = JSON.parse(text);
+        
+        const response = await fetch(`/api/episodes/${episodeNumber}/import`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            statusDiv.className = 'import-status success';
+            statusDiv.innerHTML = `
+                <strong>Import successful!</strong><br>
+                ${result.tracksImported} tracks imported
+            `;
+            
+            // Close modal after a short delay and load the episode
+            setTimeout(() => {
+                document.getElementById('importEpisodeModal').style.display = 'none';
+                currentEpisode = parseInt(episodeNumber);
+                document.getElementById('episodeSelect').value = episodeNumber;
+                loadTracks(currentEpisode);
+            }, 2000);
+        } else {
+            statusDiv.className = 'import-status error';
+            statusDiv.textContent = 'Error: ' + (result.error || 'Unknown error');
+        }
+    } catch (error) {
+        statusDiv.className = 'import-status error';
+        statusDiv.textContent = 'Error: ' + error.message;
     }
 }
 
