@@ -84,6 +84,12 @@ function initializeWaveform() {
     wavesurfer = WaveSurfer.create(config);
 
     wavesurfer.on('ready', () => {
+        // Hide loading indicator when waveform is ready
+        const loadingIndicator = document.getElementById('waveformLoading');
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
+        
         // Hide/remove any audio elements that WaveSurfer creates internally
         const hideAudioElements = () => {
             const audioElements = document.querySelectorAll('audio');
@@ -720,6 +726,12 @@ async function handleFileUpload(file) {
     const formData = new FormData();
     formData.append('file', file);
 
+    // Show loading indicator
+    const loadingIndicator = document.getElementById('waveformLoading');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'flex';
+    }
+
     try {
         const response = await fetch('/api/upload', {
             method: 'POST',
@@ -758,11 +770,26 @@ async function handleFileUpload(file) {
                 if (tracks.length > 0) {
                     updateWaveformMarkers();
                 }
+            }).catch((error) => {
+                // Hide loading indicator on error
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+                console.error('Error loading audio:', error);
+                alert('Error loading audio file: ' + error.message);
             });
         } else {
+            // Hide loading indicator on error
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
             alert('Error uploading file: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
+        // Hide loading indicator on error
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
         console.error('Error uploading file:', error);
         alert('Error uploading file: ' + error.message);
     }
