@@ -209,14 +209,20 @@ Example:
             while(1):
                 if(self.startTime==-1):
                     try:
-                        trackJson = subprocess.check_output(["util/swinsian-track-grabber"])
+                        trackJson = subprocess.check_output(["util/swinsian-track-grabber"], timeout=10)
                         track = json.loads(trackJson)
 
+                    except subprocess.TimeoutExpired:
+                        self.logger.error("swinsian-track-grabber timed out, skipping track")
+                        time.sleep(self.pollTime)
+                        continue
                     except subprocess.CalledProcessError:
                         self.logger.error("osascript failed, skipping track")
+                        time.sleep(self.pollTime)
                         continue
                     except json.decoder.JSONDecodeError:
                         self.logger.error("JSON decode, skipping track")
+                        time.sleep(self.pollTime)
                         continue
 
                     album = None
@@ -233,8 +239,21 @@ Example:
                     break
 
         while(1):
-            track = json.loads(subprocess.check_output(["util/swinsian-track-grabber"],
-                                                        text=True))
+            try:
+                track = json.loads(subprocess.check_output(["util/swinsian-track-grabber"],
+                                                            text=True, timeout=10))
+            except subprocess.TimeoutExpired:
+                self.logger.error("swinsian-track-grabber timed out, skipping track")
+                time.sleep(self.pollTime)
+                continue
+            except subprocess.CalledProcessError:
+                self.logger.error("swinsian-track-grabber failed, skipping track")
+                time.sleep(self.pollTime)
+                continue
+            except json.decoder.JSONDecodeError:
+                self.logger.error("JSON decode failed, skipping track")
+                time.sleep(self.pollTime)
+                continue
 
             # this is jank but don't keep updating the track unnecessarily
             if(previousTrack != track):
@@ -261,7 +280,7 @@ Example:
         try:
             searchTerm = quote(f"{searchArtist} {trackName}")
             searchUrl = f'https://itunes.apple.com/search?term={searchTerm}&entity=song&limit=1'
-            trackSearch = requests.get(searchUrl).json()
+            trackSearch = requests.get(searchUrl, timeout=5).json()
 
             if(trackSearch['resultCount'] > 0):
                 url100 = trackSearch["results"][0]["artworkUrl100"]

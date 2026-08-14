@@ -31,6 +31,9 @@ import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from db_schema import ensure_schema
+
 try:
     from mutagen import File
     from mutagen.id3 import ID3NoHeaderError
@@ -464,20 +467,8 @@ def import_m3u_to_db(tracks, m3u_path, episode_number, start_datetime, db_path, 
     db_path = os.path.expanduser(db_path)
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    
-    # Ensure table exists
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS trackupdate (
-        episodeNumber integer NOT NULL,
-        uniqueId char(128),
-        title char(128),
-        artist char(128),
-        album char(128),
-        length char(128),
-        startTime timestamp(128),
-        "ignore" integer(128) NOT NULL DEFAULT(0),
-        artworkUrl text(128)
-        );''')
+
+    ensure_schema(conn)
     
     # Calculate start times and insert tracks
     # Add 0.5 second padding to all tracks except the first to account for concatenation delays

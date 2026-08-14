@@ -19,6 +19,7 @@
 # IN THE SOFTWARE.
 
 from Target import Target
+from db_schema import ensure_schema
 
 import os
 import sys
@@ -54,24 +55,9 @@ class SqliteTarget(Target):
         self.conn = sqlite3.connect(dbPath)
         self.c = self.conn.cursor()
 
-        self.createTables(self.c)
+        ensure_schema(self.conn)
 
         return
-
-    def createTables(self, c):
-        c.execute('''
-            CREATE TABLE IF NOT EXISTS trackupdate (
-            episodeNumber integer NOT NULL,
-            uniqueId char(128),
-            title char(128),
-            artist char(128),
-            album char(128),
-            length char(128),
-            startTime timestamp(128),
-            "ignore" integer(128) NOT NULL DEFAULT(0),
-            artworkUrl text(128)
-            );''')
-
 
     def logTrack(self, track, startTime):
         if(startTime == -1):

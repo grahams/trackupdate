@@ -98,7 +98,7 @@ class WikiFileTarget(Target):
         return
 
     def logTrack(self, track, startTime):
-        if( track.ignore is not True ):
+        if not track.ignore:
             trackText = f"|-\n|{track.title}\n|{track.artist}\n|{track.album}\n"
 
             self.logToFile(self.wikiFile, trackText)

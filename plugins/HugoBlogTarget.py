@@ -191,7 +191,7 @@ class HugoBlogTarget(Target):
         if not self.enabled or not self.hugoFile:
             return
             
-        if( track.ignore is not True ):
+        if not track.ignore:
             self.trackCount += 1
             
             # Escape any pipe characters in track data to avoid breaking markdown table

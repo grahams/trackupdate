@@ -107,7 +107,7 @@ class CsvFileTarget(Target):
         else:
             artworkPath = f"{self.coverImagePath}/{self.stopArtwork}"
 
-        if( track.ignore is not True):
+        if not track.ignore:
             # compute the time since the start of the show
             tDelta = startTime - self.initialTime
 

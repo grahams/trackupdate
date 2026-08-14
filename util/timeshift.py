@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import sqlite3
 import argparse
@@ -8,6 +9,9 @@ import json
 
 from datetime import datetime,timedelta
 from tabulate import tabulate
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from db_schema import ensure_schema
 
 
 class TimeShift(object):
@@ -133,18 +137,7 @@ class TimeShift(object):
         destConn = sqlite3.connect(self.dbPath)
         destCursor = destConn.cursor()
 
-        destCursor.execute('''
-                CREATE TABLE IF NOT EXISTS trackupdate (
-                episodeNumber integer NOT NULL,
-                uniqueId char(128),
-                title char(128),
-                artist char(128),
-                album char(128),
-                length char(128),
-                startTime timestamp(128),
-                "ignore" integer(128) NOT NULL DEFAULT(0),
-                artworkUrl text(128)
-                );''')
+        ensure_schema(destConn)
 
 
         for track in self.tracks:

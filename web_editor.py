@@ -17,6 +17,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 import tempfile
 
+from db_schema import ensure_schema
 from waveform_peaks import cached_peaks, PeaksUnavailable
 
 # Import m3u import functions
@@ -538,20 +539,8 @@ def import_m3u():
         # Connect to database and import tracks
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Ensure table exists
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS trackupdate (
-            episodeNumber integer NOT NULL,
-            uniqueId char(128),
-            title char(128),
-            artist char(128),
-            album char(128),
-            length char(128),
-            startTime timestamp(128),
-            "ignore" integer(128) NOT NULL DEFAULT(0),
-            artworkUrl text(128)
-            );''')
+
+        ensure_schema(conn)
         
         # Calculate start times and insert tracks
         CONCAT_PADDING = 0.0
@@ -684,6 +673,6 @@ if __name__ == '__main__':
     print(f"Starting track editor web server...")
     print(f"Database path: {get_db_path()}")
     print(f"Upload folder: {app.config['UPLOAD_FOLDER']}")
-    print(f"Open http://localhost:5000 in your browser")
-    app.run(debug=True, port=5000)
+    print(f"Open http://localhost:5042 in your browser")
+    app.run(debug=True, port=5042)
 

@@ -74,7 +74,7 @@ class TrackListFileTarget(Target):
         if(self.initialTime == None):
             self.initialTime = startTime
 
-        if( track.ignore is not True):
+        if not track.ignore:
             # compute the time since the start of the show
             tDelta = startTime - self.initialTime
             tFormat = self.getTimeStamp(tDelta)
