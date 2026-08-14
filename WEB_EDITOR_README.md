@@ -34,7 +34,7 @@ A web-based tool for visually editing track times in the trackupdate database. F
 
 2. Open your browser and navigate to:
    ```
-   http://localhost:5000
+   http://localhost:5042
    ```
 
 3. **Select an Episode**: Choose an episode number from the dropdown, or create a new one

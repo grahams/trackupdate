@@ -616,6 +616,6 @@ if __name__ == '__main__':
     print(f"Starting track editor web server...")
     print(f"Database path: {get_db_path()}")
     print(f"Upload folder: {app.config['UPLOAD_FOLDER']}")
-    print(f"Open http://localhost:5000 in your browser")
-    app.run(debug=True, port=5000)
+    print(f"Open http://localhost:5042 in your browser")
+    app.run(debug=True, port=5042)
 
