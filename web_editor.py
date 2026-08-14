@@ -17,6 +17,8 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 import tempfile
 
+from waveform_peaks import cached_peaks, PeaksUnavailable
+
 # Import m3u import functions
 util_path = os.path.join(os.path.dirname(__file__), 'util')
 if util_path not in sys.path:
@@ -27,6 +29,7 @@ try:
 except ImportError as e:
     print(f"Warning: M3U import not available: {e}")
     M3U_IMPORT_AVAILABLE = False
+    get_audio_duration_ffprobe = None
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = tempfile.mkdtemp()
@@ -48,6 +51,14 @@ def get_db_path():
     except (configparser.NoSectionError, configparser.NoOptionError):
         # Fallback to default
         return os.path.expanduser('~/src/trackupdate/db/trackupdate.sqlite')
+
+def get_peaks_cache_dir():
+    """Waveform peak cache, kept alongside the database.
+
+    Unlike the upload folder this survives a restart, which is the whole point:
+    recomputing peaks costs an ffmpeg pass over the entire show.
+    """
+    return os.path.join(os.path.dirname(get_db_path()), 'peaks_cache')
 
 def get_db_connection():
     db_path = get_db_path()
@@ -371,17 +382,64 @@ def upload_file():
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
-    
+
+    # The client needs the duration up front: handing WaveSurfer both peaks and
+    # a duration is what lets it skip decoding the file itself.
+    duration = None
+    if get_audio_duration_ffprobe is not None:
+        duration = get_audio_duration_ffprobe(filepath)
+
     return jsonify({
         'success': True,
         'filename': filename,
-        'url': f'/api/audio/{filename}'
+        'url': f'/api/audio/{filename}',
+        'peaksUrl': f'/api/audio/{filename}/peaks',
+        'duration': duration
     })
+
+def uploaded_file_path(filename):
+    """Resolve an uploaded file, or None if it isn't there.
+
+    secure_filename is applied on the way in (upload_file) and again here, so a
+    request can't walk out of the upload folder.
+    """
+    safe = secure_filename(filename)
+    if not safe:
+        return None
+    path = os.path.join(app.config['UPLOAD_FOLDER'], safe)
+    return path if os.path.isfile(path) else None
 
 @app.route('/api/audio/<filename>')
 def serve_audio(filename):
-    """Serve uploaded audio files"""
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    """Serve uploaded audio files.
+
+    conditional=True is already Flask's default; it's spelled out because
+    playback depends on it. Range requests are what let the media element seek
+    within a two hour show instead of fetching the whole thing first.
+    """
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename,
+                               conditional=True)
+
+@app.route('/api/audio/<filename>/peaks')
+def serve_peaks(filename):
+    """Return the precomputed waveform envelope as little-endian Float32.
+
+    Interleaved min/max pairs. Binary rather than JSON because a two hour show
+    is ~5.7MB of floats, which JSON would roughly triple.
+    """
+    path = uploaded_file_path(filename)
+    if path is None:
+        return jsonify({'error': 'File not found'}), 404
+
+    try:
+        data = cached_peaks(path, get_peaks_cache_dir())
+    except PeaksUnavailable as e:
+        # 501 rather than 500: the client falls back to decoding in-browser,
+        # which is slow but still works.
+        print(f"Peak generation unavailable for {filename}: {e}")
+        return jsonify({'error': str(e)}), 501
+
+    return app.response_class(data, mimetype='application/octet-stream')
 
 @app.route('/api/import/m3u', methods=['POST'])
 def import_m3u():

@@ -73,8 +73,10 @@ function initializeWaveform() {
         normalize: true,
         minPxPerSec: currentZoom,
         fillParent: false, // Don't fill parent, let it be wider when zoomed
-        interact: true, // Enable interaction for scrolling
-        backend: 'WebAudio' // Use WebAudio backend instead of MediaElement to avoid HTML5 audio element
+        interact: true // Enable interaction for scrolling
+        // No backend override: the default MediaElement backend streams the file.
+        // The old 'WebAudio' backend had to decode the entire mp3 to an AudioBuffer
+        // first (~2.5GB of PCM for a two hour show), which is what made loading slow.
     };
     
     if (regionsPlugin) {
@@ -722,6 +724,47 @@ function updateWaveformMarkers() {
     });
 }
 
+function setLoadingMessage(message) {
+    const text = document.getElementById('waveformLoadingText');
+    if (text) {
+        text.textContent = message;
+    }
+}
+
+function hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById('waveformLoading');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+    }
+}
+
+/**
+ * Fetch the server-side waveform envelope.
+ *
+ * The server returns interleaved min/max pairs as little-endian Float32, which
+ * is exactly the flat array WaveSurfer buckets over per pixel. Handing this to
+ * load() alongside a duration lets it skip decoding the mp3 altogether.
+ *
+ * Returns null whenever peaks can't be had, so the caller falls back to the old
+ * in-browser decode rather than leaving the user with no waveform at all.
+ */
+async function fetchPeaks(peaksUrl) {
+    if (!peaksUrl) return null;
+
+    try {
+        const response = await fetch(peaksUrl);
+        if (!response.ok) {
+            // 501 means the server has no usable ffmpeg.
+            console.warn(`Peaks unavailable (HTTP ${response.status}); decoding in browser instead`);
+            return null;
+        }
+        return new Float32Array(await response.arrayBuffer());
+    } catch (error) {
+        console.warn('Peaks request failed; decoding in browser instead', error);
+        return null;
+    }
+}
+
 async function handleFileUpload(file) {
     const formData = new FormData();
     formData.append('file', file);
@@ -731,6 +774,7 @@ async function handleFileUpload(file) {
     if (loadingIndicator) {
         loadingIndicator.style.display = 'flex';
     }
+    setLoadingMessage('Uploading audio file...');
 
     try {
         const response = await fetch('/api/upload', {
@@ -739,57 +783,60 @@ async function handleFileUpload(file) {
         });
 
         const data = await response.json();
-        
-        if (data.success) {
-            audioUrl = data.url;
-            document.getElementById('fileName').textContent = file.name;
-            document.getElementById('audioInfo').style.display = 'block';
-            document.getElementById('dropZone').style.display = 'none';
-            document.getElementById('toggleUploadSection').style.display = 'block';
-            
-            // Collapse the upload section after file is loaded
-            document.getElementById('uploadSection').classList.add('collapsed');
-            
-            // Load audio into wavesurfer
-            wavesurfer.load(audioUrl).then(() => {
-                // Hide any audio elements after loading
-                setTimeout(() => {
-                    const audioElements = document.querySelectorAll('audio');
-                    audioElements.forEach(audio => {
-                        audio.style.cssText = 'display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;';
-                        audio.removeAttribute('controls');
-                    });
-                }, 100);
-                
-                // Set initial zoom after loading
-                if (wavesurfer.getDuration()) {
-                    wavesurfer.zoom(currentZoom);
-                }
-                // Markers will be added in the 'ready' event handler
-                // But also update them here in case tracks are already loaded
-                if (tracks.length > 0) {
-                    updateWaveformMarkers();
-                }
-            }).catch((error) => {
-                // Hide loading indicator on error
-                if (loadingIndicator) {
-                    loadingIndicator.style.display = 'none';
-                }
-                console.error('Error loading audio:', error);
-                alert('Error loading audio file: ' + error.message);
-            });
-        } else {
-            // Hide loading indicator on error
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
-            }
+
+        if (!data.success) {
+            hideLoadingIndicator();
             alert('Error uploading file: ' + (data.error || 'Unknown error'));
+            return;
+        }
+
+        audioUrl = data.url;
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('audioInfo').style.display = 'block';
+        document.getElementById('dropZone').style.display = 'none';
+        document.getElementById('toggleUploadSection').style.display = 'block';
+
+        // Collapse the upload section after file is loaded
+        document.getElementById('uploadSection').classList.add('collapsed');
+
+        // Generating peaks is one ffmpeg pass over the whole show (~8s for two
+        // hours) and is cached afterwards, so say so rather than looking hung.
+        setLoadingMessage('Analyzing waveform (first time only)...');
+        const peaks = await fetchPeaks(data.peaksUrl);
+
+        setLoadingMessage('Rendering waveform...');
+        try {
+            if (peaks && data.duration) {
+                await wavesurfer.load(audioUrl, [peaks], data.duration);
+            } else {
+                await wavesurfer.load(audioUrl);
+            }
+
+            // Hide any audio elements after loading
+            setTimeout(() => {
+                const audioElements = document.querySelectorAll('audio');
+                audioElements.forEach(audio => {
+                    audio.style.cssText = 'display: none !important; visibility: hidden !important; position: absolute !important; width: 0 !important; height: 0 !important; opacity: 0 !important; pointer-events: none !important;';
+                    audio.removeAttribute('controls');
+                });
+            }, 100);
+
+            // Set initial zoom after loading
+            if (wavesurfer.getDuration()) {
+                wavesurfer.zoom(currentZoom);
+            }
+            // Markers will be added in the 'ready' event handler
+            // But also update them here in case tracks are already loaded
+            if (tracks.length > 0) {
+                updateWaveformMarkers();
+            }
+        } catch (error) {
+            hideLoadingIndicator();
+            console.error('Error loading audio:', error);
+            alert('Error loading audio file: ' + error.message);
         }
     } catch (error) {
-        // Hide loading indicator on error
-        if (loadingIndicator) {
-            loadingIndicator.style.display = 'none';
-        }
+        hideLoadingIndicator();
         console.error('Error uploading file:', error);
         alert('Error uploading file: ' + error.message);
     }
