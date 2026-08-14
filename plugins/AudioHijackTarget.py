@@ -85,8 +85,6 @@ class AudioHijackTarget(Target):
         album = track.album or "";
         length = track.length or "";
 
-        track.title = track.title.replace("-", " ")
-
         fh = open(self.initDestination, 'w')
         fh.write(f"Title: {title.replace(' - ', '-') }\n")
         fh.write(f"Artist: {artist.replace(' - ', '-')}\n")
