@@ -33,6 +33,10 @@ press Ctrl-C in the TUI and choose "End show": that writes the CUE, track
 list, wiki and CSV files and stops the engine. The engine's log and socket
 live in ~/.trackupdate/. Run ./trackupdate.py -h for all options.
 
+-a skips rows whose stored ignore flag is set. m3u imports now set it for
+ignoreAlbum tracks, but episodes imported before that may need their bumper
+rows marked ignored (in the TUI or web editor) for -a to skip them.
+
 trackupdate and some of its plugins require configuration data, which is
 stored in a file named ~/.trackupdaterc. See example-trackupdaterc for
 details on the various configuration options.
