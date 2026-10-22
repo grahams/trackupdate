@@ -23,17 +23,30 @@ class EngineStartFailed(Exception):
     pass
 
 
-def ensure_engine(episode: str, grabber: str | None = None) -> None:
+def ensure_engine(episode: str, grabber: str | None = None,
+                  poll_time: int | None = None, pattern: str | None = None,
+                  verbose: bool = False) -> bool:
+    """Return True if a new engine was started, False if one was attached.
+
+    `grabber`, `poll_time`, `pattern` and `verbose` only apply to a new
+    engine; a running one keeps its own settings.
+    """
     episode = str(episode)
     info = runtime.engine_alive()
     if info is not None:
         if str(info.get("episode")) == episode:
-            return
+            return False
         raise EngineBusy(str(info.get("episode")))
 
     cmd = [sys.executable, ENGINE_SCRIPT, "-e", episode]
     if grabber:
         cmd += ["--grabber", os.path.abspath(grabber)]
+    if poll_time is not None:
+        cmd += ["-t", str(poll_time)]
+    if pattern:
+        cmd += ["-p", pattern]
+    if verbose:
+        cmd.append("-v")
     with open(runtime.log_path(), "ab") as log:
         proc = subprocess.Popen(cmd, cwd=REPO, start_new_session=True,
                                 stdin=subprocess.DEVNULL, stdout=log,
@@ -46,7 +59,7 @@ def ensure_engine(episode: str, grabber: str | None = None) -> None:
     while time.monotonic() < deadline:
         info = runtime.engine_alive()
         if info is not None and info.get("pid") == proc.pid:
-            return
+            return True
         if proc.returncode is not None:
             break
         time.sleep(0.1)

@@ -282,3 +282,25 @@ def test_engine_starts_over_stale_socket_without_info(env):
         _wait_snapshot(s, lambda m: m["episode"] == "900")
     finally:
         s.close()
+
+
+def test_settings_are_passed_to_a_new_engine_only(env, monkeypatch):
+    commands = []
+    spawn = launcher.subprocess.Popen
+
+    def capture(cmd, *args, **kwargs):
+        commands.append(cmd)
+        return spawn(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(launcher.subprocess, "Popen", capture)
+    assert launcher.ensure_engine("900", grabber=FAKE_GRABBER, poll_time=3,
+                                  pattern="Sqlite*.py", verbose=True) is True
+    cmd = commands[0]
+    assert cmd[cmd.index("-t") + 1] == "3"
+    assert cmd[cmd.index("-p") + 1] == "Sqlite*.py"
+    assert "-v" in cmd
+    assert _wait_for(lambda: "poll 3s" in runtime.log_path().read_text())
+
+    # Attaching to the running engine spawns nothing and reports it.
+    assert launcher.ensure_engine("900", poll_time=7) is False
+    assert len(commands) == 1

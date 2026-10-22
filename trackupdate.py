@@ -21,50 +21,30 @@
 # IN THE SOFTWARE.
 
 import os
-import time
 import sys
 import getopt
 import configparser
-import glob
 import logging
-import subprocess
-import track_source
 import plugin_loader
 import archive
-import json
-import traceback
 import sqlite3
-import requests
-import re
 
-from urllib.parse import quote
-from datetime import datetime,date
-from operator import attrgetter
-from Track import Track
-from pathlib import Path
+import launcher
 
-pluginList = []
+REPO = os.path.dirname(os.path.abspath(__file__))
+TUI_CRASHED = ("The TUI stopped unexpectedly. The engine for episode {episode} "
+               "is still running and logging tracks; re-run the same command "
+               "to reattach.")
+
 
 class TrackUpdate(object):
-    introAlbum = ""
-
-    currentTrack = Track(None,None,None,None,None,None,None)
-
-    coverImagePath = ""
-    coverImageBaseURL = ""
-    pollScriptPath = ""
     episodeNumber = "XX"
-    archiveDate = None
     useDatabase = False
-    pollTime = 10
-    startTime = -1
-    useStopValues = False
-    stopTitle = ""
-    stopArtist = ""
-    stopAlbum = ""
-    stopArtwork = ""
-    ignoreAlbum = None
-    pluginPattern = "*.py"
+    plain = False
+    verbose = False
+    pollTime = None
+    pluginPattern = None
+    grabber = None
     dbPath = None
     conn = None
     c = None
@@ -73,26 +53,83 @@ class TrackUpdate(object):
     def usage(self):
         print( "Usage: trackupdate.py [arguments]" )
         print( """
-This is a simple script which polls Apple Music for track info every 
-(default) 10 seconds and gives that information to plugin scripts to act 
-upon (for instance, announcing the track information to Slack, or updating
-the metadata in Audio Hijack's Broadcast module)
+Polls Swinsian for the currently playing track and hands it to the target
+plugins (Audio Hijack's NowPlaying.txt, the sqlite db, ...). By default this
+starts the live engine in the background, or attaches to the one already
+running for the episode, and opens the TUI. Closing the TUI leaves the
+engine running; re-run the same command to reattach. End the show from the
+TUI (Ctrl-C, then "End show") to write the CUE/list/wiki/CSV files.
 
 Arguments:
-    -v  --verbose     you are lonely and want trackupdate to talk more
-    -e  --episode     the episode number (optional, used by some plugins)
-    -t  --polltime    the time to wait between polling iTunes
-    -h  --help        show this help page
-    -p  --pattern     plugin filename pattern (optional, defaults to '*.py')
+    -e  --episode     the episode number (required)
+    -t  --polltime    seconds between polls (overrides pollTime; new engine only)
+    -p  --pattern     plugin filename pattern (defaults to '*.py'; new engine only)
+    -v  --verbose     verbose engine logging
+        --plain       no TUI: run the engine in the foreground, printing
+                      tracks to the terminal; Ctrl-C ends the show
     -a  --archive     use the sqlite db as the track source
+    -h  --help        show this help page
 
 Example:
-    ./trackupdate.py -e 42 -t 5 -v
+    ./trackupdate.py -e 42
+    ./trackupdate.py -e 42 --plain -v
+    ./trackupdate.py -a -e 42
     """)
 
     def __init__(self,argv):
-        config = None
         self.logger.setLevel(logging.WARNING)
+
+        try:
+            opts, args = getopt.getopt(argv, "he:t:p:va", ["help",
+                                       "episode=", "polltime=",
+                                       "pattern=", "verbose", "archive",
+                                       "plain", "grabber="])
+        except (getopt.GetoptError) as err:
+            # print help information and exit:
+            self.logger.error(str(err)) # will print something like
+                                   # "option -a not recognized"
+            self.usage()
+            sys.exit(2)
+
+        for o, a in opts:
+            if o in ("-e", "--episode"):
+                self.episodeNumber = a
+            elif o in ("-a", "--archive"):
+                self.useDatabase = True
+            elif o in ("-t", "--polltime"):
+                self.pollTime = max(1, int(a))
+            elif o in ("-p", "--pattern"):
+                self.pluginPattern = a
+            elif o in ("-v", "--verbose"):
+                self.verbose = True
+            elif o == "--plain":
+                self.plain = True
+            elif o == "--grabber":  # hidden: a stand-in grabber for testing
+                self.grabber = os.path.abspath(a)
+            elif o in ("-h", "--help"):
+                self.usage()
+                sys.exit()
+            else:
+                assert False, "unhandled option"
+
+        try:
+            if(self.useDatabase):
+                self.archiveMode()
+            else:
+                self.liveMode()
+        except KeyboardInterrupt:
+            pass
+
+    def archiveMode(self):
+        if(self.verbose):
+            # remove any logging handlers created by logging before
+            # BasicConfig() is called
+            if(self.logger.handlers):
+                for handler in self.logger.handlers:
+                    self.logger.removeHandler(handler)
+
+            self.logger.setLevel(logging.DEBUG)
+            logging.debug("Starting up. Press Ctrl-C to stop.")
 
         # process config file
         if not os.path.isfile(os.path.expanduser('~/.trackupdaterc')):
@@ -102,19 +139,11 @@ Example:
         config.read(os.path.expanduser('~/.trackupdaterc'))
 
         try:
-            self.introAlbum = config.get('trackupdate', 'introAlbum')
-            self.pollTime = int(config.get('trackupdate', 'pollTime'))
-            self.useStopValues = config.get('trackupdate', 'useStopValues')
-            self.stopTitle = config.get('trackupdate', 'stopTitle')
-            self.stopArtist = config.get('trackupdate', 'stopArtist')
-            self.stopAlbum = config.get('trackupdate', 'stopAlbum')
-            self.stopArtwork = config.get('trackupdate', 'stopArtwork')
-            self.ignoreAlbum = config.get('trackupdate', 'ignoreAlbum')
-            self.coverImagePath = config.get('trackupdate', 'coverImagePath')
-            self.coverImageBaseURL = config.get('trackupdate', 'coverImageBaseURL')
-            self.pollScriptPath = config.get('trackupdate', 'pollScriptPath')
+            for key in ('introAlbum', 'pollTime', 'useStopValues', 'stopTitle',
+                        'stopArtist', 'stopAlbum', 'stopArtwork', 'ignoreAlbum',
+                        'coverImagePath', 'coverImageBaseURL', 'pollScriptPath'):
+                config.get('trackupdate', key)
             self.dbPath = config.get('SqliteTarget', 'dbPath')
-            
         except configparser.NoSectionError:
             self.logger.error("Warning: Invalid config file, no [trackupdate] section.")
             pass
@@ -122,236 +151,79 @@ Example:
             self.logger.error("[trackupdate]: Missing values in config")
             return
 
-        self.coverImagePath = os.path.expanduser(self.coverImagePath) 
+        self.logger.debug("In archive mode, reading from sqlite db")
+        self.logger.debug("Episode #: %s" % str(self.episodeNumber))
 
-        # process command-line arguments
-        if(len(argv) > 0):
-            try:
-                opts, args = getopt.getopt(sys.argv[1:], "h:e:t:p:va", ["help",
-                                           "episode=", "polltime=", 
-                                           "pattern=", "verbose", "archive"])
-            except (getopt.GetoptError) as err:
-                # print help information and exit:
-                self.logger.error(str(err)) # will print something like 
-                                       # "option -a not recognized"
-                self.usage()
-                sys.exit(2)
+        if(self.episodeNumber == "XX"):
+            self.logger.error('Episode number ("-e/--episode") required for archive mode')
+        else:
+            self.dbPath = os.path.expanduser(self.dbPath)
+            self.conn = sqlite3.connect(self.dbPath)
+            self.c = self.conn.cursor()
 
-            for o, a in opts:
-                if o in ("-e", "--episode"):
-                    self.episodeNumber = a
-                elif o in ("-a", "--archive"):
-                    self.useDatabase = True
-                elif o in ("-t", "--polltime"):
-                    a = int(a)
-                    if(a <= 0):
-                        a = 1
-
-                    self.pollTime = a
-                elif o in ("-p", "--pattern"):
-                    self.logger.debug("Plugin pattern set to: " + a)
-                    self.pluginPattern = a
-                elif o in ("-v", "--verbose"):
-                    # remove any logging handlers created by logging before
-                    # BasicConfig() is called
-                    if(self.logger.handlers):
-                        for handler in self.logger.handlers:
-                            self.logger.removeHandler(handler)
-
-                    self.logger.setLevel(logging.DEBUG)
-                    logging.debug("Starting up. Press Ctrl-C to stop.")
-                elif o in ("-h", "--help"):
-                    self.usage()
-                    sys.exit()
-                else:
-                    assert False, "unhandled option"
-
-        # default stopArtwork if empty
-        if(self.stopArtwork == ""):
-            todayName = date.today().strftime("%Y%m%d.jpg")
-            self.stopArtwork = todayName
-
-        self.logger.debug(f"self.stopArtwork is {self.stopArtwork}")
-
-        try:
-            if(self.useDatabase):
-                self.logger.debug("In archive mode, reading from sqlite db")
-                self.logger.debug("Episode #: %s" % str(self.episodeNumber))
-                self.logger.debug("Time between polling: %i" % self.pollTime)
-
-                if(self.episodeNumber == "XX"):
-                    self.logger.error('Episode number ("-e/--episode") required for archive mode')
-                else:
-                    self.dbPath = os.path.expanduser(self.dbPath)
-                    self.conn = sqlite3.connect(self.dbPath)
-                    self.c = self.conn.cursor()
-
-                    self.archiveLoop(config)
-            else:
-                self.logger.debug("In live mode, reading from Applescript")
-                self.logger.debug("Episode #: %s" % str(self.episodeNumber))
-                self.logger.debug("Time between polling: %i" % self.pollTime)
-
-                self.loadPlugins(config)
-                self.liveLoop()
-        except (KeyboardInterrupt,SystemExit):
-            self.cleanUp()
-
-    def liveLoop(self):
-        previousTrack = None
-
-        if(self.introAlbum != ""):
-            while(1):
-                if(self.startTime==-1):
-                    try:
-                        trackJson = subprocess.check_output(["util/swinsian-track-grabber"], timeout=10)
-                        track = json.loads(trackJson)
-
-                    except subprocess.TimeoutExpired:
-                        self.logger.error("swinsian-track-grabber timed out, skipping track")
-                        time.sleep(self.pollTime)
-                        continue
-                    except subprocess.CalledProcessError:
-                        self.logger.error("osascript failed, skipping track")
-                        time.sleep(self.pollTime)
-                        continue
-                    except json.decoder.JSONDecodeError:
-                        self.logger.error("JSON decode, skipping track")
-                        time.sleep(self.pollTime)
-                        continue
-
-                    album = None
-
-                    if('trackAlbum' in track.keys()):
-                        album = track['trackAlbum']
-                    
-
-                    if((len(track) == 0) or (album == self.introAlbum)):
-                        time.sleep(self.pollTime)
-                    else:
-                        break
-                else:
-                    break
-
-        while(1):
-            try:
-                track = json.loads(subprocess.check_output(["util/swinsian-track-grabber"],
-                                                            text=True, timeout=10))
-            except subprocess.TimeoutExpired:
-                self.logger.error("swinsian-track-grabber timed out, skipping track")
-                time.sleep(self.pollTime)
-                continue
-            except subprocess.CalledProcessError:
-                self.logger.error("swinsian-track-grabber failed, skipping track")
-                time.sleep(self.pollTime)
-                continue
-            except json.decoder.JSONDecodeError:
-                self.logger.error("JSON decode failed, skipping track")
-                time.sleep(self.pollTime)
-                continue
-
-            # this is jank but don't keep updating the track unnecessarily
-            if(previousTrack != track):
-                previousTrack = track
-
-                if(len(track) > 0):
-                    self.processCurrentTrack(track)
-                elif(self.useStopValues == 'True'):
-                    stopTrack = Track(self.stopTitle, 
-                                        self.stopArtist, 
-                                        self.stopAlbum, 
-                                        "9:99",
-                                        None,
-                                        "", 
-                                        False)
-                    self.updateTrack(stopTrack, datetime.now())
-
-            time.sleep(self.pollTime)
+            self.archiveLoop(config)
 
     def archiveLoop(self, config):
-        scriptPath = os.path.split(os.path.abspath(__file__))[0]
-        classes = plugin_loader.discover(config, scriptPath + "/plugins/",
-                                         self.pluginPattern)
+        classes = plugin_loader.discover(config, REPO + "/plugins/",
+                                         self.pluginPattern or "*.py")
         results = archive.generate(config, self.episodeNumber, classes, self.conn)
         for r in results:
             if not r["ok"]:
                 self.logger.error("%s: archive failed: %s" % (r["plugin"], r["error"]))
 
-    def cleanUp(self):
-        self.logger.debug("Exiting...")
+    def engineArgs(self):
+        args = []
+        if(self.grabber):
+            args += ["--grabber", self.grabber]
+        if(self.pollTime is not None):
+            args += ["-t", str(self.pollTime)]
+        if(self.pluginPattern):
+            args += ["-p", self.pluginPattern]
+        if(self.verbose):
+            args.append("-v")
+        return args
 
-        for plugin in pluginList:
-            try:
-                plugin.close()
-            except Exception as e:
-                self.logger.error(plugin.pluginName + ": Error trying to close target")
-                self.logger.error(''.join(traceback.format_tb(sys.exc_info()[2])))
-    
+    def liveMode(self):
+        if(self.episodeNumber == "XX"):
+            print('Episode number ("-e/--episode") required', file=sys.stderr)
+            self.usage()
+            sys.exit(2)
 
-    def processCurrentTrack(self, t):
-        iArtist = ""
-        iName = ""
-        iAlbum = ""
-        iLength = ""
-        iId = ""
+        if(self.plain):
+            # Replace this process so Ctrl-C goes straight to the engine.
+            os.execv(sys.executable, [sys.executable, launcher.ENGINE_SCRIPT,
+                                      "-e", self.episodeNumber, "--plain"]
+                     + self.engineArgs())
 
-        if('trackArtist' in t.keys()):
-            iArtist = t['trackArtist']
-        if('trackName' in t.keys()):
-            iName = t['trackName']
-        if('trackAlbum' in t.keys()):
-            iAlbum = t['trackAlbum']
-        if('trackLength' in t.keys()):
-            iLength = t['trackLength']
-        if('trackId' in t.keys()):
-            iId = t['trackId']
+        try:
+            started = launcher.ensure_engine(
+                self.episodeNumber, grabber=self.grabber,
+                poll_time=self.pollTime, pattern=self.pluginPattern,
+                verbose=self.verbose)
+        except launcher.EngineBusy as e:
+            print(f"An engine for episode {e.episode} is already running; "
+                  "end that show first.", file=sys.stderr)
+            sys.exit(1)
+        except launcher.EngineStartFailed as e:
+            print(f"Could not start the engine: {e}", file=sys.stderr)
+            sys.exit(1)
 
-        artworkUrl = track_source.search_artwork(iName,iArtist)
+        if(not started and (self.pollTime is not None or self.pluginPattern)):
+            print("Attached to the running engine; its poll time and plugin "
+                  "pattern are kept.", file=sys.stderr)
 
-        if(artworkUrl == None):
-            self.logger.debug("No artwork found in search, using default")
-            artworkUrl = f"{self.coverImageBaseURL}/{self.stopArtwork}"
+        import tui  # only live mode needs textual
 
-        track = Track(iName, 
-                      iArtist, 
-                      iAlbum, 
-                      iLength, 
-                      artworkUrl,
-                      iId, 
-                      False)
-
-        self.updateTrack(track, datetime.now())
-
-    def updateTrack(self, track, startTime):
-        # make sure the track has actually changed
-        if( (track.artist != self.currentTrack.artist) or 
-            (track.title != self.currentTrack.title) ):
-
-            self.currentTrack = track
-            track.ignore = False
-
-            if( track.album == self.ignoreAlbum ):
-                track.ignore = True
-
-            for plugin in pluginList:
-                try:
-                    plugin.logTrack(track, startTime)
-                except Exception as e:
-                    self.logger.error(str(plugin) + ": Error trying to update track")
-                    self.logger.error(''.join(traceback.format_tb(sys.exc_info()[2])))
-
-    def loadPlugins(self, config):
-        self.logger.debug("Loading plugins...")
-
-        scriptPath = os.path.split(os.path.abspath(__file__))[0]
-        sys.path.append(scriptPath)
-
-        for cls in plugin_loader.discover(config, scriptPath + "/plugins/",
-                                          self.pluginPattern):
-            self.logger.debug("Loading plugin '%s'...." % cls.__name__)
-            pluginList.append(cls(config, self.episodeNumber, self.archiveDate))
-
-        pluginList.sort(key=attrgetter('priority'), reverse=True)
+        try:
+            app = tui.TrackUpdateApp(tui.EngineLink())
+            app.run()
+            code = app.return_code or 0
+        except Exception as e:
+            print(f"{type(e).__name__}: {e}", file=sys.stderr)
+            code = 1
+        if(code != 0):
+            print(TUI_CRASHED.format(episode=self.episodeNumber), file=sys.stderr)
+            sys.exit(code)
 
 if __name__ == "__main__":
     trackUpdate = TrackUpdate(sys.argv[1:])

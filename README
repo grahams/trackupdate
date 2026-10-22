@@ -21,6 +21,18 @@ perform various tasks. The currently included plugins are:
   specified in the .rc file.  Requires that python-twitter is installed
   (http://code.google.com/p/python-twitter/)
 
+Usage:
+
+    ./trackupdate.py -e 42          # start the show (or reattach) and open the TUI
+    ./trackupdate.py -e 42 --plain  # no TUI; engine in the foreground
+    ./trackupdate.py -a -e 42       # regenerate the files from the sqlite db
+
+The live engine runs in the background, so closing the TUI (or a crash)
+leaves the show logging; re-run the same command to reattach. To finish,
+press Ctrl-C in the TUI and choose "End show": that writes the CUE, track
+list, wiki and CSV files and stops the engine. The engine's log and socket
+live in ~/.trackupdate/. Run ./trackupdate.py -h for all options.
+
 trackupdate and some of its plugins require configuration data, which is
 stored in a file named ~/.trackupdaterc. See example-trackupdaterc for
 details on the various configuration options.
