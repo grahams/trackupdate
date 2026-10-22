@@ -118,6 +118,28 @@ def test_cursor_stays_put_unless_on_last_row():
     run(body())
 
 
+def test_new_snapshot_keeps_scroll_when_not_following():
+    async def body():
+        many = [track(n, f"Song {n}", start=f"2026-10-21 20:{n:02d}:00.000000")
+                for n in range(1, 61)]
+        app = TrackUpdateApp(FakeLink())
+        async with app.run_test(size=(110, 30)) as pilot:
+            table = app.query_one(DataTable)
+            app.apply_snapshot(snapshot(tracks=many, currentRowid=60))
+            await pilot.pause()
+            assert table.cursor_row == 59 and table.scroll_y > 0  # followed
+            table.move_cursor(row=10)
+            await pilot.pause()
+            scroll_y = table.scroll_y
+            assert scroll_y > 0
+            more = many + [track(61, "Song 61", start="2026-10-21 21:01:00.000000")]
+            app.apply_snapshot(snapshot(tracks=more, currentRowid=61))
+            await pilot.pause()
+            assert table.cursor_row == 10
+            assert table.scroll_y == scroll_y
+    run(body())
+
+
 def test_edit_sends_edit_row():
     async def body():
         link = FakeLink([snapshot()])

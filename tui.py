@@ -433,6 +433,7 @@ class MainScreen(Screen):
 
         tracks = snap.get("tracks") or []
         current = snap.get("currentRowid")
+        scroll = (table.scroll_x, table.scroll_y)  # clear() resets these
         table.clear()
         for n, row in enumerate(tracks, 1):
             style = "dim" if row.get("ignore") else ""
@@ -449,6 +450,8 @@ class MainScreen(Screen):
         else:
             target = cursor_rowid if cursor_rowid in rowids else rowids[-1]
         table.move_cursor(row=rowids.index(target), scroll=follow)
+        if not follow:
+            table.scroll_to(*scroll, animate=False)
 
     def _render_plugins(self, snap):
         plugins = snap.get("plugins") or []
