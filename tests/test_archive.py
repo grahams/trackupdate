@@ -33,8 +33,10 @@ def classes():
     plugin_classes = plugin_loader.discover(config, FIXTURES)
     import FileFake
     FileFake.calls.clear()
+    FileFake.tracks.clear()
     yield config, plugin_classes
     FileFake.calls.clear()
+    FileFake.tracks.clear()
 
 
 def test_generate_feeds_rows_in_order(conn, classes):
@@ -70,3 +72,39 @@ def test_generate_skips_live_plugins(conn, classes):
 def test_generate_empty_episode(conn, classes):
     config, plugin_classes = classes
     assert archive.generate(config, 99, plugin_classes, conn) == []
+
+
+def _run_file_fake(conn, classes, episode):
+    import FileFake
+    config, plugin_classes = classes
+    archive.generate(config, episode,
+                     [c for c in plugin_classes if c.__name__ == "FileFake"], conn)
+    return FileFake
+
+
+def _add(conn, episode, title, artist, minute, ignore=0, album="Al"):
+    conn.execute("INSERT INTO trackupdate VALUES (?,?,?,?,?,?,?,?,?)",
+                 (episode, title, title, artist, album, "1",
+                  f"2026-02-01 10:{minute:02d}:00.000000", ignore, "u"))
+    conn.commit()
+
+
+def test_generate_skips_consecutive_duplicates(conn, classes):
+    for m, t in enumerate(["A", "A", "B"]):
+        _add(conn, 20, t, "X", m)
+    ff = _run_file_fake(conn, classes, 20)
+    assert [t.title for t in ff.tracks] == ["A", "B"]
+
+
+def test_generate_keeps_non_consecutive_repeats(conn, classes):
+    for m, t in enumerate(["A", "B", "A"]):
+        _add(conn, 21, t, "X", m)
+    ff = _run_file_fake(conn, classes, 21)
+    assert [t.title for t in ff.tracks] == ["A", "B", "A"]
+
+
+def test_generate_uses_stored_ignore(conn, classes):
+    _add(conn, 22, "Hidden", "X", 0, ignore=1, album="Al")
+    _add(conn, 22, "Shown", "X", 1, ignore=0, album="Radio Programme")
+    ff = _run_file_fake(conn, classes, 22)
+    assert [(t.title, t.ignore) for t in ff.tracks] == [("Hidden", True), ("Shown", False)]

@@ -21,7 +21,7 @@ def discover(config, plugin_dir, pattern="*.py"):
             enabled = config.get(class_name, 'enabled')
         except (configparser.NoSectionError, configparser.NoOptionError):
             enabled = 'False'
-        if enabled != 'True':
+        if enabled == 'False':
             continue
         mod = __import__(class_name, globals(), locals(), [''])
         classes.append(getattr(mod, class_name))

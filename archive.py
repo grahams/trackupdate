@@ -22,7 +22,13 @@ def generate(config, episode, plugin_classes, conn):
         try:
             plugin = cls(config, episode, first)
             try:
+                previous = None
                 for row in rows:
+                    # legacy behaviour: skip a row repeating the previous track
+                    key = (row["artist"], row["title"])
+                    if key == previous:
+                        continue
+                    previous = key
                     plugin.logTrack(episode_db.row_to_track(row),
                                     datetime.fromisoformat(row["startTime"]))
             finally:

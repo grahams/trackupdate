@@ -1,6 +1,7 @@
 from Target import Target
 
 calls = []
+tracks = []
 
 
 class FileFake(Target):
@@ -13,6 +14,7 @@ class FileFake(Target):
 
     def logTrack(self, track, startTime):
         calls.append(("track", track.title, startTime))
+        tracks.append(track)
 
     def close(self):
         calls.append(("close",))

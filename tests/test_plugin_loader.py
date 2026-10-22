@@ -29,3 +29,9 @@ def test_is_live():
     live, file_ = plugin_loader.discover(config, FIXTURES)
     assert plugin_loader.is_live(live)
     assert not plugin_loader.is_live(file_)
+
+
+def test_discover_enables_anything_but_false():
+    config = _config(LiveFake="true", FileFake="yes", BrokenFake="False")
+    names = [c.__name__ for c in plugin_loader.discover(config, FIXTURES)]
+    assert names == ["LiveFake", "FileFake"]
