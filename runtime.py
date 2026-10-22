@@ -54,9 +54,15 @@ def read_info() -> dict | None:
         return None
 
 
-def clear_runtime() -> None:
-    for p in (socket_path(), info_path(), override_path()):
+def clear_stale() -> None:
+    """Remove the socket and info files but keep any persisted override."""
+    for p in (socket_path(), info_path()):
         p.unlink(missing_ok=True)
+
+
+def clear_runtime() -> None:
+    clear_stale()
+    override_path().unlink(missing_ok=True)
 
 
 def engine_alive() -> dict | None:
@@ -73,7 +79,7 @@ def engine_alive() -> dict | None:
             return info
         except (OSError, KeyError, TypeError):
             pass
-    clear_runtime()
+    clear_stale()
     return None
 
 

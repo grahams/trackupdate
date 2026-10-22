@@ -34,3 +34,15 @@ def test_encode_decode_roundtrip():
     data = runtime.encode(msg)
     assert data.endswith(b"\n")
     assert runtime.decode(data) == msg
+
+
+def test_engine_alive_keeps_override_when_stale(tmp_path, monkeypatch):
+    monkeypatch.setenv("TRACKUPDATE_RUNTIME_DIR", str(tmp_path))
+    track = Track("T", "A", "Al", "120", None, "uid-1", False)
+    runtime.save_override(OverrideState(track, swinsian_idle=False), None)
+    p = subprocess.Popen([sys.executable, "-c", "pass"])
+    p.wait()
+    runtime.write_info("412", p.pid)
+    assert runtime.engine_alive() is None
+    assert not runtime.info_path().exists()
+    assert runtime.load_override() is not None
