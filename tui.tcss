@@ -87,3 +87,30 @@ TrackForm {
 #form-buttons Button {
     margin-left: 1;
 }
+
+QuitScreen, EndingScreen {
+    align: center middle;
+}
+
+#quit, #ending {
+    width: 70;
+    height: auto;
+    border: round $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#quit-heading {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#quit-buttons {
+    height: auto;
+    margin-top: 1;
+    align-horizontal: right;
+}
+
+#quit-buttons Button {
+    margin-left: 1;
+}

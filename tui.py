@@ -142,6 +142,92 @@ class TrackForm(ModalScreen):
         self.dismiss(values)
 
 
+class QuitScreen(ModalScreen):
+    """Asks what Ctrl-C meant; dismisses with "end", "close" or None.
+
+    Focus starts on Cancel so a reflexive Ctrl-C, Enter can never end the show.
+    """
+
+    AUTO_FOCUS = "#cancel"
+    BINDINGS = [Binding("escape", "cancel", "Cancel")]
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="quit"):
+            yield Label("Leave trackupdate?", id="quit-heading")
+            yield Label("Closing the window keeps the show logging. "
+                        "Ending the show generates the files and stops the engine.")
+            with Horizontal(id="quit-buttons"):
+                yield Button("End show", variant="error", id="end")
+                yield Button("Close window", id="close")
+                yield Button("Cancel", variant="primary", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        event.stop()
+        self.dismiss(None if event.button.id == "cancel" else event.button.id)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
+class EndingScreen(ModalScreen):
+    """Waits for the engine's end-of-show results; any key exits once known."""
+
+    WAITING = "Ending show — generating files…"
+    CLOSED = ("Engine closed before reporting results — "
+              "check ~/.trackupdate/engine.log")
+
+    def __init__(self):
+        super().__init__()
+        self.results: list[dict] | None = None
+        self.engine_closed = False
+        self._body: Static | None = None
+
+    @property
+    def done(self) -> bool:
+        return self.results is not None or self.engine_closed
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="ending"):
+            self._body = Static(self._message(), id="ending-message")
+            yield self._body
+
+    def _message(self) -> Text:
+        if self.results is not None:
+            text = Text("Show ended.\n\n", style="bold")
+            for r in self.results:
+                if r.get("ok"):
+                    text.append(f"✓ {r.get('plugin')}\n", style="green")
+                else:
+                    text.append(f"✗ {r.get('plugin')} — {r.get('error')}\n", style="red")
+            if not self.results:
+                text.append("No files to generate.\n", style="dim")
+        elif self.engine_closed:
+            text = Text(self.CLOSED + "\n", style="bold red")
+        else:
+            return Text(self.WAITING)
+        text.append("\npress any key to exit", style="dim")
+        return text
+
+    def show_results(self, results: list[dict]) -> None:
+        self.results = list(results)
+        self._update()
+
+    def engine_gone(self) -> None:
+        if self.results is None:
+            self.engine_closed = True
+            self._update()
+
+    def _update(self) -> None:
+        # Results can land before the screen has composed or mounted.
+        if self._body is not None:
+            self._body.update(self._message())
+
+    def on_key(self, event) -> None:
+        event.stop()
+        if self.done:
+            self.app.exit()
+
+
 class PluginSwitch(Switch):
     """A switch that asks the engine to toggle instead of flipping itself."""
 
@@ -170,6 +256,8 @@ class MainScreen(Screen):
         Binding("o", "override", "Override"),
         Binding("x", "cancel_override", "End override"),
         Binding("tab", "switch_tab", "Tracks/Plugins"),
+        # Priority on the screen, not the app: inside a form `q` must type.
+        Binding("q", "app.quit_prompt", "Quit", priority=True),
     ]
 
     def compose(self) -> ComposeResult:
@@ -380,6 +468,11 @@ def _clock(start_time) -> str:
 class TrackUpdateApp(App):
     CSS_PATH = "tui.tcss"
     TITLE = "trackupdate"
+    # Replace Textual's ctrl+q (quit) and ctrl+c (copy/help) with the prompt.
+    BINDINGS = [
+        Binding("ctrl+c", "quit_prompt", show=False, priority=True),
+        Binding("ctrl+q", "quit_prompt", show=False, priority=True),
+    ]
 
     def __init__(self, link):
         super().__init__()
@@ -434,6 +527,9 @@ class TrackUpdateApp(App):
     def _set_link_status(self, status) -> None:
         self.link_status = status
         self._main().render_status()
+        ending = self._ending()
+        if ending is not None and status != CONNECTED:
+            ending.engine_gone()  # no-op once the results are in
 
     def send(self, cmd: dict) -> None:
         """Queue a command for the engine; never blocks or raises."""
@@ -446,8 +542,39 @@ class TrackUpdateApp(App):
                 await self.link.send(cmd)
             except Exception as e:
                 self.log.error(f"send failed: {e!r}")
-                self.link_status = DISCONNECTED
-                self._main().render_status()
+                self._set_link_status(DISCONNECTED)
+
+    # ---- quitting --------------------------------------------------------
+
+    def action_quit_prompt(self) -> None:
+        screen = self.screen
+        if isinstance(screen, EndingScreen):
+            if screen.done:
+                self.exit()
+            return
+        if isinstance(screen, QuitScreen):
+            return
+        self.push_screen(QuitScreen(), self._quit_chosen)
+
+    def _quit_chosen(self, choice) -> None:
+        if choice == "end":
+            self.send({"cmd": "end_show"})
+            self._show_ending()
+        elif choice == "close":
+            self.exit()  # the engine keeps logging without us
+
+    def _ending(self) -> "EndingScreen | None":
+        for screen in self.screen_stack:
+            if isinstance(screen, EndingScreen):
+                return screen
+        return None
+
+    def _show_ending(self) -> EndingScreen:
+        ending = self._ending()
+        if ending is None:
+            ending = EndingScreen()
+            self.push_screen(ending)
+        return ending
 
     # ---- snapshots -------------------------------------------------------
 
@@ -456,3 +583,8 @@ class TrackUpdateApp(App):
         self.rows = {row["rowid"]: row for row in snap.get("tracks") or []}
         self.link_status = CONNECTED  # snapshots only arrive over a live link
         self._main().render_snapshot(snap)
+        phase = snap.get("phase")
+        if phase in ("ending", "ended"):
+            ending = self._show_ending()
+            if phase == "ended":
+                ending.show_results(snap.get("results") or [])

@@ -3,10 +3,11 @@ import os
 import tempfile
 from datetime import datetime
 
-from textual.widgets import DataTable, Input, Static, Switch
+from textual.widgets import Button, DataTable, Input, Static, Switch
 
 import runtime
-from tui import DISCONNECTED, EngineLink, TrackUpdateApp, format_header
+from tui import (DISCONNECTED, EndingScreen, EngineLink, MainScreen, QuitScreen,
+                 TrackUpdateApp, format_header)
 
 
 class FakeLink:
@@ -319,4 +320,189 @@ def test_bad_on_air_since_does_not_kill_the_app():
                 await pilot.pause(1.2)  # let the real 1 s timer fire too
                 assert app.is_running
                 assert "Episode 412" in str(header.render())
+    run(body())
+
+
+# ---- quitting, ending the show, resilience ---------------------------------
+
+def test_ctrl_c_opens_quit_screen_focused_on_cancel():
+    async def body():
+        app = TrackUpdateApp(FakeLink([snapshot()]))
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            assert isinstance(app.screen, QuitScreen)
+            labels = [str(b.label) for b in app.screen.query(Button)]
+            assert labels == ["End show", "Close window", "Cancel"]
+            assert app.focused.id == "cancel"
+            await pilot.press("ctrl+c")  # already open: no second prompt
+            await pilot.pause()
+            assert len(app.screen_stack) == 2
+    run(body())
+
+
+def test_q_and_ctrl_q_open_quit_screen():
+    async def body():
+        app = TrackUpdateApp(FakeLink([snapshot()]))
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            for key in ("q", "ctrl+q"):
+                await pilot.press(key)
+                await pilot.pause()
+                assert isinstance(app.screen, QuitScreen)
+                await pilot.press("escape")
+                await pilot.pause()
+                assert isinstance(app.screen, MainScreen)
+            assert app.is_running
+    run(body())
+
+
+def test_q_types_into_track_form_but_ctrl_c_still_prompts():
+    async def body():
+        app = TrackUpdateApp(FakeLink([snapshot()]))
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            await pilot.press("o")
+            await pilot.pause()
+            await pilot.press("q")
+            await pilot.pause()
+            assert app.screen.query_one("#title", Input).value == "q"
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            assert isinstance(app.screen, QuitScreen)
+    run(body())
+
+
+def test_enter_on_quit_screen_cancels():
+    async def body():
+        link = FakeLink([snapshot()])
+        app = TrackUpdateApp(link)
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            await pilot.press("enter")
+            await pilot.pause(0.05)
+            assert isinstance(app.screen, MainScreen)
+            assert app.is_running
+            assert link.sent == []
+    run(body())
+
+
+def test_end_show_sends_and_shows_results():
+    async def body():
+        link = FakeLink([snapshot()])
+        app = TrackUpdateApp(link)
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            await pilot.click("#end")
+            await wait_until(pilot, lambda: link.sent)
+            assert link.sent == [{"cmd": "end_show"}]
+            assert isinstance(app.screen, EndingScreen)
+            message = app.screen.query_one("#ending-message", Static)
+            assert "generating files" in str(message.render())
+            app.apply_snapshot(snapshot(phase="ending"))
+            await pilot.pause()
+            await pilot.press("x")  # keys do nothing until the results arrive
+            await pilot.pause()
+            assert app.is_running
+            app.apply_snapshot(snapshot(phase="ended", results=[
+                {"plugin": "CueFileTarget", "ok": True, "error": None},
+                {"plugin": "HugoBlogTarget", "ok": False, "error": "disk full"}]))
+            await pilot.pause()
+            app._handle({"event": "link", "status": DISCONNECTED})  # engine exits
+            await pilot.pause()
+            text = str(app.screen.query_one("#ending-message", Static).render())
+            assert "✓ CueFileTarget" in text
+            assert "✗ HugoBlogTarget — disk full" in text
+            assert "press any key to exit" in text
+            assert "retrying" not in text
+            await pilot.press("x")
+            await pilot.pause()
+            assert not app.is_running
+    run(body())
+
+
+def test_engine_closing_before_results_says_so():
+    async def body():
+        link = FakeLink([snapshot()])
+        app = TrackUpdateApp(link)
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            await pilot.click("#end")
+            await wait_until(pilot, lambda: link.sent)
+            app.apply_snapshot(snapshot(phase="ending"))
+            app._handle({"event": "link", "status": DISCONNECTED})
+            await pilot.pause()
+            text = str(app.screen.query_one("#ending-message", Static).render())
+            assert "Engine closed before reporting results" in text
+            assert "engine.log" in text
+            await pilot.press("space")
+            await pilot.pause()
+            assert not app.is_running
+    run(body())
+
+
+def test_ended_snapshot_on_fresh_connect_shows_results():
+    async def body():
+        app = TrackUpdateApp(FakeLink([snapshot(phase="ended", results=[
+            {"plugin": "CueFileTarget", "ok": True, "error": None}])]))
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: isinstance(app.screen, EndingScreen)
+                             and app.screen.query("#ending-message"))
+            text = str(app.screen.query_one("#ending-message", Static).render())
+            assert "✓ CueFileTarget" in text
+    run(body())
+
+
+def test_close_window_sends_nothing():
+    async def body():
+        link = FakeLink([snapshot()])
+        app = TrackUpdateApp(link)
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            await pilot.click("#close")
+            await pilot.pause(0.05)
+            assert not app.is_running
+            assert link.sent == []
+    run(body())
+
+
+class FlakyLink(FakeLink):
+    """Refuses the first connection, then behaves like FakeLink."""
+
+    def __init__(self, messages=()):
+        super().__init__(messages)
+        self.connects = 0
+
+    async def connect(self):
+        self.connects += 1
+        if self.connects == 1:
+            raise ConnectionRefusedError("no engine yet")
+
+    async def __aiter__(self):
+        await self.connect()
+        async for msg in super().__aiter__():
+            yield msg
+
+
+def test_link_drop_shows_retrying_without_crash():
+    async def body():
+        link = FlakyLink([snapshot()])
+        app = TrackUpdateApp(link)
+        async with app.run_test(size=(110, 30)) as pilot:
+            status = app.query_one("#status", Static)
+            await wait_until(pilot, lambda: "retrying" in str(status.render()))
+            assert app.is_running
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3,
+                             tries=200)
+            assert link.connects == 2
+            assert "connected" == str(status.render())
     run(body())
