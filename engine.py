@@ -4,10 +4,14 @@ Every poll tick and client command runs serially on the thread that calls
 `run`. Each plugin call, listener call and command is isolated so a single
 failure can never stop track logging.
 """
+import argparse
+import configparser
 import logging
 import os
 import queue
+import signal
 import sqlite3
+import sys
 import threading
 import time
 from dataclasses import replace
@@ -15,6 +19,7 @@ from datetime import date, datetime
 
 import archive
 import db_schema
+import engine_server
 import episode_db
 import plugin_loader
 import runtime
@@ -152,6 +157,11 @@ class Engine:
     def subscribe(self, fn):
         with self._listeners_lock:
             self._listeners.append(fn)
+
+    def unsubscribe(self, fn):
+        with self._listeners_lock:
+            if fn in self._listeners:
+                self._listeners.remove(fn)
 
     # ---- polling and dispatch -------------------------------------------
 
@@ -434,3 +444,78 @@ def _field(cmd, key, typ):
     if typ is int and isinstance(value, bool) or not isinstance(value, typ):
         raise CommandError(f"{cmd.get('cmd')}: missing or invalid {key!r}")
     return value
+
+
+PLAIN_ONLY_PLUGIN = "StdioTarget"
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Run the trackupdate live engine behind its Unix socket.")
+    parser.add_argument("-e", "--episode", required=True)
+    parser.add_argument("-t", "--polltime", type=int,
+                        help="seconds between polls (overrides pollTime)")
+    parser.add_argument("-p", "--pattern", default="*.py",
+                        help="glob selecting plugin files")
+    parser.add_argument("--grabber", default=track_source.GRABBER_PATH)
+    parser.add_argument("--plain", action="store_true",
+                        help="foreground mode: also print tracks via StdioTarget")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    args = parser.parse_args(argv)
+
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        stream=sys.stderr)
+
+    running = runtime.engine_alive()
+    if running is not None:
+        print(f"An engine for episode {running.get('episode')} is already running.",
+              file=sys.stderr)
+        return 1
+
+    config = configparser.ConfigParser()
+    config.read(os.path.expanduser("~/.trackupdaterc"))
+    poll_time = args.polltime or config.getint("trackupdate", "pollTime", fallback=10)
+    plugin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plugins")
+    classes = [cls for cls in plugin_loader.discover(config, plugin_dir, args.pattern)
+               if args.plain or cls.__name__ != PLAIN_ONLY_PLUGIN]
+    grabber = os.path.abspath(args.grabber)
+
+    engine = Engine(config=config, episode=args.episode, plugin_classes=classes,
+                    poller=lambda: track_source.poll_swinsian(grabber))
+
+    def request_end(signum, frame):
+        logger.info("signal %d: ending the show", signum)
+        # queue.Queue isn't reentrant; never put from inside a signal handler.
+        threading.Thread(target=engine.submit, args=({"cmd": "end_show"},),
+                         daemon=True).start()
+
+    server = engine_server.serve(engine)
+    ended = False
+    try:
+        runtime.write_info(args.episode, os.getpid())
+        signal.signal(signal.SIGINT, request_end)
+        signal.signal(signal.SIGTERM, request_end)
+        logger.info("engine for episode %s running (pid %d, poll %ds)",
+                    args.episode, os.getpid(), poll_time)
+        engine.run(poll_time)
+        ended = True
+    finally:
+        engine_server.shutdown(server)
+        if not ended:
+            runtime.clear_stale()  # keep any override for the restarted engine
+
+    for r in engine.results:
+        line = f"{r['plugin']}: {'ok' if r.get('ok') else 'FAILED'}"
+        if r.get("error"):
+            line += f" ({r['error']})"
+        logger.info("%s", line)
+        if args.plain:
+            print(line)
+    logger.info("show ended")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
