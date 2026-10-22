@@ -35,3 +35,12 @@ def test_discover_enables_anything_but_false():
     config = _config(LiveFake="true", FileFake="yes", BrokenFake="False")
     names = [c.__name__ for c in plugin_loader.discover(config, FIXTURES)]
     assert names == ["LiveFake", "FileFake"]
+
+
+def test_sqlite_target_dispatched_first_among_live_plugins():
+    real = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plugins")
+    names = [os.path.splitext(f)[0] for f in os.listdir(real) if f.endswith(".py")]
+    classes = plugin_loader.discover(_config(**dict.fromkeys(names, "True")), real)
+    live = [c.__name__ for c in classes if plugin_loader.is_live(c)]
+    assert "AudioHijackTarget" in live
+    assert live[0] == "SqliteTarget"

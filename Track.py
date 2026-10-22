@@ -21,7 +21,7 @@ class Track:
 
         if(p.is_file() == False):
             with p.open(mode='wb') as handle:
-                response = requests.get(self.artworkURL, stream=True)
+                response = requests.get(self.artworkURL, stream=True, timeout=10)
 
                 if not response.ok:
                     return False
