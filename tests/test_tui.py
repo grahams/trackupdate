@@ -506,3 +506,55 @@ def test_link_drop_shows_retrying_without_crash():
             assert link.connects == 2
             assert "connected" == str(status.render())
     run(body())
+
+
+class EndShowRefusedLink(FakeLink):
+    """Connected for snapshots, but writing end_show fails."""
+
+    async def send(self, cmd):
+        if cmd.get("cmd") == "end_show":
+            raise ConnectionError("not connected to the engine")
+        await super().send(cmd)
+
+
+def test_end_show_not_sent_says_so_and_goes_back():
+    async def body():
+        app = TrackUpdateApp(EndShowRefusedLink([snapshot()]))
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.query_one(DataTable).row_count == 3)
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            await pilot.click("#end")
+            await wait_until(pilot, lambda: isinstance(app.screen, EndingScreen)
+                             and app.screen.not_sent)
+            await pilot.pause()
+            text = str(app.screen.query_one("#ending-message", Static).render())
+            assert "End show was NOT sent" in text
+            assert "show is still running" in text
+            assert "Engine closed" not in text
+            await pilot.press("x")
+            await pilot.pause()
+            assert isinstance(app.screen, MainScreen)
+            assert app.is_running
+    run(body())
+
+
+def test_end_show_disabled_while_disconnected():
+    async def body():
+        app = TrackUpdateApp(FakeLink([
+            {"event": "link", "status": DISCONNECTED}]))
+        async with app.run_test(size=(110, 30)) as pilot:
+            await wait_until(pilot, lambda: app.link_status == DISCONNECTED)
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            end = app.screen.query_one("#end", Button)
+            assert end.disabled
+            assert "not connected" in str(end.label)
+            assert app.focused.id == "cancel"
+            app.apply_snapshot(snapshot())  # reconnected: a new prompt offers it
+            await pilot.press("escape")
+            await pilot.pause()
+            await pilot.press("ctrl+c")
+            await pilot.pause()
+            assert not app.screen.query_one("#end", Button).disabled
+    run(body())

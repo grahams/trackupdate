@@ -151,13 +151,21 @@ class QuitScreen(ModalScreen):
     AUTO_FOCUS = "#cancel"
     BINDINGS = [Binding("escape", "cancel", "Cancel")]
 
+    def __init__(self, connected: bool = True):
+        super().__init__()
+        self.connected = connected
+
     def compose(self) -> ComposeResult:
         with Vertical(id="quit"):
             yield Label("Leave trackupdate?", id="quit-heading")
             yield Label("Closing the window keeps the show logging. "
                         "Ending the show generates the files and stops the engine.")
             with Horizontal(id="quit-buttons"):
-                yield Button("End show", variant="error", id="end")
+                if self.connected:
+                    yield Button("End show", variant="error", id="end")
+                else:  # it could not be delivered; don't offer it
+                    yield Button("End show (engine not connected)", variant="error",
+                                 id="end", disabled=True)
                 yield Button("Close window", id="close")
                 yield Button("Cancel", variant="primary", id="cancel")
 
@@ -170,16 +178,24 @@ class QuitScreen(ModalScreen):
 
 
 class EndingScreen(ModalScreen):
-    """Waits for the engine's end-of-show results; any key exits once known."""
+    """Waits for the engine's end-of-show results; any key exits once known.
+
+    If `end_show` never reached the engine, says so and a key goes back to
+    the main screen instead: the show is still running.
+    """
 
     WAITING = "Ending show — generating files…"
     CLOSED = ("Engine closed before reporting results — "
               "check ~/.trackupdate/engine.log")
+    NOT_SENT = ("Could not reach the engine — the show is still running and "
+                "End show was NOT sent. Press any key to go back.")
 
     def __init__(self):
         super().__init__()
         self.results: list[dict] | None = None
         self.engine_closed = False
+        self.sent = False      # end_show was written to the engine socket
+        self.not_sent = False  # sending end_show failed
         self._body: Static | None = None
 
     @property
@@ -201,6 +217,8 @@ class EndingScreen(ModalScreen):
                     text.append(f"✗ {r.get('plugin')} — {r.get('error')}\n", style="red")
             if not self.results:
                 text.append("No files to generate.\n", style="dim")
+        elif self.not_sent:
+            return Text(self.NOT_SENT, style="bold red")
         elif self.engine_closed:
             text = Text(self.CLOSED + "\n", style="bold red")
         else:
@@ -212,8 +230,18 @@ class EndingScreen(ModalScreen):
         self.results = list(results)
         self._update()
 
+    def mark_sent(self) -> None:
+        self.sent = True
+
+    def send_failed(self) -> None:
+        if not self.sent:
+            self.not_sent = True
+            self._update()
+
     def engine_gone(self) -> None:
-        if self.results is None:
+        # Before end_show is written, a drop is the send's problem: either
+        # it fails (send_failed) or it goes out after the reconnect.
+        if self.sent and self.results is None:
             self.engine_closed = True
             self._update()
 
@@ -222,10 +250,15 @@ class EndingScreen(ModalScreen):
         if self._body is not None:
             self._body.update(self._message())
 
+    def leave(self) -> None:
+        if self.not_sent:
+            self.app.pop_screen()
+        elif self.done:
+            self.app.exit()
+
     def on_key(self, event) -> None:
         event.stop()
-        if self.done:
-            self.app.exit()
+        self.leave()
 
 
 class PluginSwitch(Switch):
@@ -538,28 +571,34 @@ class TrackUpdateApp(App):
     async def _send_loop(self) -> None:
         while True:
             cmd = await self._outbox.get()
+            ending = self._ending() if cmd.get("cmd") == "end_show" else None
             try:
                 await self.link.send(cmd)
             except Exception as e:
                 self.log.error(f"send failed: {e!r}")
+                if ending is not None:
+                    ending.send_failed()
                 self._set_link_status(DISCONNECTED)
+            else:
+                if ending is not None:
+                    ending.mark_sent()
 
     # ---- quitting --------------------------------------------------------
 
     def action_quit_prompt(self) -> None:
         screen = self.screen
         if isinstance(screen, EndingScreen):
-            if screen.done:
-                self.exit()
+            screen.leave()
             return
         if isinstance(screen, QuitScreen):
             return
-        self.push_screen(QuitScreen(), self._quit_chosen)
+        self.push_screen(QuitScreen(connected=self.link_status == CONNECTED),
+                         self._quit_chosen)
 
     def _quit_chosen(self, choice) -> None:
         if choice == "end":
+            self._show_ending()  # first, so the send loop can find it
             self.send({"cmd": "end_show"})
-            self._show_ending()
         elif choice == "close":
             self.exit()  # the engine keeps logging without us
 
@@ -586,5 +625,6 @@ class TrackUpdateApp(App):
         phase = snap.get("phase")
         if phase in ("ending", "ended"):
             ending = self._show_ending()
+            ending.mark_sent()  # the engine is ending, whoever asked
             if phase == "ended":
                 ending.show_results(snap.get("results") or [])
