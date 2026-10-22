@@ -29,6 +29,8 @@ import glob
 import logging
 import subprocess
 import track_source
+import plugin_loader
+import archive
 import json
 import traceback
 import sqlite3
@@ -184,15 +186,7 @@ Example:
                     self.conn = sqlite3.connect(self.dbPath)
                     self.c = self.conn.cursor()
 
-                    # retrieve the first date 
-                    for row in self.c.execute("SELECT startTime FROM trackupdate WHERE episodeNumber = '%s' ORDER BY startTime LIMIT 1" % self.episodeNumber):
-                        sTime = datetime.fromisoformat(row[0])
-                        self.logger.debug("Archive Date: " + str(sTime))
-                        self.archiveDate = sTime
-
-                    self.loadPlugins(config)
-
-                    self.archiveLoop()
+                    self.archiveLoop(config)
             else:
                 self.logger.debug("In live mode, reading from Applescript")
                 self.logger.debug("Episode #: %s" % str(self.episodeNumber))
@@ -274,30 +268,14 @@ Example:
 
             time.sleep(self.pollTime)
 
-    def archiveLoop(self):
-        for row in self.c.execute("SELECT * FROM trackupdate WHERE episodeNumber = '%s' ORDER BY startTime" % self.episodeNumber):
-            episodeNumber = row[0]
-            uniqueId = row[1]
-            title = row[2]
-            artist = row[3]
-            album = row[4]
-            length = row[5]
-            sTime = row[6]
-            ignore = row[7]
-            artworkUrl = row[8]
-
-            t = Track(title,
-                        artist,
-                        album,
-                        length,
-                        artworkUrl,
-                        uniqueId,
-                        ignore)
-            
-            sTime = datetime.fromisoformat(sTime)
-            self.updateTrack(t,sTime)
-
-        self.cleanUp()
+    def archiveLoop(self, config):
+        scriptPath = os.path.split(os.path.abspath(__file__))[0]
+        classes = plugin_loader.discover(config, scriptPath + "/plugins/",
+                                         self.pluginPattern)
+        results = archive.generate(config, self.episodeNumber, classes, self.conn)
+        for r in results:
+            if not r["ok"]:
+                self.logger.error("%s: archive failed: %s" % (r["plugin"], r["error"]))
 
     def cleanUp(self):
         self.logger.debug("Exiting...")
@@ -366,41 +344,12 @@ Example:
         self.logger.debug("Loading plugins...")
 
         scriptPath = os.path.split(os.path.abspath(__file__))[0]
-        
         sys.path.append(scriptPath)
-        sys.path.append(scriptPath + "/plugins/")
-        pluginNames = glob.glob(scriptPath + "/plugins/" + self.pluginPattern)
-        for x in pluginNames:
-            className = x.replace(".py","").replace(scriptPath + "/plugins/","")
-            enabled = 'False'
 
-            # if the .rc doesn't define whether it is enabled, defaults to False
-            try:
-                enabled = config.get(className, 'enabled')
-            except configparser.NoSectionError:
-                enabled = 'False'
-            except configparser.NoOptionError:
-                enabled = 'False'
-
-            if(enabled=='False'):
-                self.logger.debug("Skipping plugin '%s'." % className)
-            else:
-                self.logger.debug("Loading plugin '%s'...." % className)
-
-                # import the module
-                mod = __import__(className, globals(), locals(), [''])
-
-                # find the symbol for the class
-                cls  = getattr(mod,className)
-
-                if(self.useDatabase and not cls.enableArchive):
-                    self.logger.debug(f"{cls.pluginName} Plugin not enabled for archive mode, skipping")
-                else:
-                    # initialize the plugin
-                    o = cls(config, self.episodeNumber, self.archiveDate)
-
-                    # add the plugin to the list
-                    pluginList.append(o)
+        for cls in plugin_loader.discover(config, scriptPath + "/plugins/",
+                                          self.pluginPattern):
+            self.logger.debug("Loading plugin '%s'...." % cls.__name__)
+            pluginList.append(cls(config, self.episodeNumber, self.archiveDate))
 
         pluginList.sort(key=attrgetter('priority'), reverse=True)
 
