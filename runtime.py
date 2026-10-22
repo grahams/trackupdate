@@ -66,21 +66,34 @@ def clear_runtime() -> None:
 
 
 def engine_alive() -> dict | None:
+    """Return the running engine's info, or None.
+
+    Stale files are cleared only when engine.json names a dead pid. With no
+    info, or a live pid whose socket isn't accepting yet, an engine may be
+    starting (it binds before writing info), so nothing is deleted.
+    """
     info = read_info()
-    if info is not None:
-        try:
-            os.kill(info["pid"], 0)
-            s = socket.socket(socket.AF_UNIX)
-            try:
-                s.settimeout(1.0)
-                s.connect(str(socket_path()))
-            finally:
-                s.close()
-            return info
-        except (OSError, KeyError, TypeError):
-            pass
-    clear_stale()
-    return None
+    if info is None:
+        return None
+    try:
+        os.kill(info["pid"], 0)
+    except ProcessLookupError:
+        clear_stale()
+        return None
+    except PermissionError:
+        pass  # pid exists but belongs to someone else
+    except (KeyError, TypeError, ValueError, OverflowError):
+        clear_stale()  # malformed info: nothing can be running behind it
+        return None
+    s = socket.socket(socket.AF_UNIX)
+    try:
+        s.settimeout(1.0)
+        s.connect(str(socket_path()))
+        return info
+    except OSError:
+        return None
+    finally:
+        s.close()
 
 
 def save_override(state: OverrideState, last_report: dict | None) -> None:

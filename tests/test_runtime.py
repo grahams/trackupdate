@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 
@@ -46,3 +47,32 @@ def test_engine_alive_keeps_override_when_stale(tmp_path, monkeypatch):
     assert runtime.engine_alive() is None
     assert not runtime.info_path().exists()
     assert runtime.load_override() is not None
+
+
+def test_engine_alive_keeps_socket_without_info(monkeypatch):
+    # An engine binds its socket before writing engine.json: a probe in that
+    # window must not delete the socket.
+    import shutil
+    import socket
+    import tempfile
+    d = tempfile.mkdtemp(dir="/tmp", prefix="tu-")
+    try:
+        monkeypatch.setenv("TRACKUPDATE_RUNTIME_DIR", d)
+        s = socket.socket(socket.AF_UNIX)
+        s.bind(str(runtime.socket_path()))
+        s.listen()
+        try:
+            assert runtime.engine_alive() is None
+            assert runtime.socket_path().exists()
+        finally:
+            s.close()
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def test_engine_alive_keeps_info_while_engine_starts(tmp_path, monkeypatch):
+    # Live pid, socket not accepting yet: still starting, not stale.
+    monkeypatch.setenv("TRACKUPDATE_RUNTIME_DIR", str(tmp_path))
+    runtime.write_info("412", os.getpid())
+    assert runtime.engine_alive() is None
+    assert runtime.info_path().exists()

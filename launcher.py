@@ -44,14 +44,9 @@ def ensure_engine(episode: str, grabber: str | None = None) -> None:
 
     deadline = time.monotonic() + START_TIMEOUT
     while time.monotonic() < deadline:
-        # Probe only once our child has written its info file: engine_alive()
-        # treats a socket without info as stale and would unlink the socket
-        # the child has bound but not yet announced.
-        info = runtime.read_info()
+        info = runtime.engine_alive()
         if info is not None and info.get("pid") == proc.pid:
-            if runtime.engine_alive() is not None:
-                return
-            break
+            return
         if proc.returncode is not None:
             break
         time.sleep(0.1)

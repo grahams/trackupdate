@@ -245,3 +245,40 @@ def test_start_failure_reports_log_tail(env, monkeypatch):
     with pytest.raises(launcher.EngineStartFailed) as exc:
         launcher.ensure_engine("900", grabber=FAKE_GRABBER)
     assert "no_such_engine.py" in str(exc.value)
+
+
+def test_slow_reader_with_large_snapshot_is_not_dropped(env):
+    import db_schema
+    conn = sqlite3.connect(env.db)
+    db_schema.ensure_schema(conn)
+    conn.executemany(
+        'INSERT INTO trackupdate VALUES (?,?,?,?,?,?,?,?,?)',
+        [("900", f"old-{i}", f"Old Song {i} " + "x" * 150, "Old Artist", "Old Album",
+          "3:00", f"2026-10-21 20:{i // 60:02d}:{i % 60:02d}.000000", 0, None)
+         for i in range(300)])
+    conn.commit()
+    conn.close()
+
+    env.start("900")
+    s = _connect()
+    try:
+        time.sleep(2)  # don't read while the >16 KB hello snapshot is sent
+        env.play("id-1", "New Song")
+        snap = _wait_snapshot(s, lambda m: "New Song" in _titles(m), timeout=10)
+        assert len(snap["tracks"]) == 301
+        assert len(runtime.encode(snap)) > 16 * 1024
+    finally:
+        s.close()
+
+
+def test_engine_starts_over_stale_socket_without_info(env):
+    stale = socket.socket(socket.AF_UNIX)
+    stale.bind(str(runtime.socket_path()))
+    stale.close()  # file left behind, nothing listening
+    env.start("900")
+    s = _connect()
+    try:
+        _send(s, {"cmd": "hello"})
+        _wait_snapshot(s, lambda m: m["episode"] == "900")
+    finally:
+        s.close()

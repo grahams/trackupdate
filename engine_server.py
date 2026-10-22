@@ -5,6 +5,7 @@ Handler threads never touch the engine's db or plugins. They only
 writer receives. Each client has its own bounded outbound queue drained by a
 sender thread, so a slow, stalled or dead client can never block the engine.
 """
+import errno
 import logging
 import os
 import queue
@@ -19,7 +20,6 @@ logger = logging.getLogger("engine_server")
 MAX_LINE = 1 << 20      # a client sending more than this without a newline is dropped
 OUTBOX_SIZE = 16        # snapshots are complete state, so the oldest can be dropped
 SEND_TIMEOUT = 10.0     # a client that won't read for this long is dropped
-RECV_POLL = 1.0
 FLUSH_TIMEOUT = 2.0
 
 
@@ -83,7 +83,8 @@ class _Handler(socketserver.BaseRequestHandler):
         server = self.server
         engine = server.engine
         client = _Client(self.request)
-        self.request.settimeout(RECV_POLL)
+        # Governs sendall too; recv is woken early by the sender's shutdown.
+        self.request.settimeout(SEND_TIMEOUT)
         with server.clients_lock:
             server.clients.add(client)
         client.sender.start()
@@ -137,7 +138,14 @@ def serve(engine) -> threading.Thread:
     The socket is listening by the time this returns. Stop it with `shutdown`.
     """
     path = runtime.socket_path()
-    server = _Server(str(path), _Handler)
+    try:
+        server = _Server(str(path), _Handler)
+    except OSError as e:
+        if e.errno != errno.EADDRINUSE or _accepts(path):
+            raise
+        # A crashed engine's socket with nothing listening: take it over.
+        path.unlink(missing_ok=True)
+        server = _Server(str(path), _Handler)
     server.engine = engine
     server.clients = set()
     server.clients_lock = threading.Lock()
@@ -147,6 +155,18 @@ def serve(engine) -> threading.Thread:
     thread.server = server
     thread.start()
     return thread
+
+
+def _accepts(path):
+    s = socket.socket(socket.AF_UNIX)
+    try:
+        s.settimeout(1.0)
+        s.connect(str(path))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
 
 
 def shutdown(thread: threading.Thread) -> None:
