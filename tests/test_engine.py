@@ -295,3 +295,16 @@ def test_toggling_failed_sqlite_retries_it(config):
     assert _sqlite_state(eng)["enabled"] is True
     eng.tick()
     assert rows(config) == [("A",)]
+
+
+def test_restart_pushes_current_track_to_live_plugins(config):
+    a = make(config, [rep("A")])
+    a.tick()
+    seen = []
+
+    class Watch(LiveRecorder):
+        def logTrack(self, track, startTime):
+            seen.append((track.title, len(rows(config))))
+    make(config, [], classes=(SqliteTarget, Watch, FileRecorder))
+    assert seen == [("A", 1)]
+    assert rows(config) == [("A",)]

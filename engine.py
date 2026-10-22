@@ -115,6 +115,11 @@ class Engine:
             if plugin_loader.is_live(cls):
                 self._construct(entry)
 
+        # Plugins such as AudioHijackTarget write a placeholder on construction,
+        # and the first poll is deduped against `current`: re-push it now.
+        if self.session.current is not None:
+            self._push_current()
+
     def _is_stop(self, track):
         st = self.stop_track
         return st is not None and (track.title, track.artist, track.album) == (
@@ -245,6 +250,12 @@ class Engine:
                    and e["cls"].__name__ not in exclude]
         return sorted(entries, key=lambda e: e["cls"].priority, reverse=True)
 
+    def _push_current(self):
+        """Re-send the current track to live plugins without adding a row."""
+        start_time = self._now()
+        for entry in self._live_entries(exclude=(LOCKED_PLUGIN,)):
+            self._call_plugin(entry, self.session.current, start_time)
+
     def _call_plugin(self, entry, track, start_time):
         name = entry["cls"].__name__
         try:
@@ -297,9 +308,7 @@ class Engine:
         if override is not None and override.track.uniqueId == old.uniqueId:
             override.track = new
             self._sync_override(before=None)  # forces a save of the new text
-        start_time = self._now()
-        for entry in self._live_entries(exclude=(LOCKED_PLUGIN,)):
-            self._call_plugin(entry, new, start_time)
+        self._push_current()
 
     def _cmd_toggle_ignore(self, cmd):
         row = self._row(cmd)
