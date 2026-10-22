@@ -120,6 +120,8 @@ class Engine:
         try:
             entry["instance"] = entry["cls"](self.config, self.episode, None)
             entry["enabled"] = True
+            if self.last_error and self.last_error.startswith(f"{name}: failed to start"):
+                self.last_error = None
             return True
         except Exception as e:
             logger.exception("%s: failed to start", name)
@@ -208,6 +210,7 @@ class Engine:
                 logger.exception("artwork lookup raised")
             track.artworkURL = url or f"{self.cover_base_url}/{self.stop_artwork}"
 
+        self._retry_locked_plugin()
         start_time = self._now()
         for entry in self._live_entries():
             self._call_plugin(entry, track, start_time)
@@ -218,6 +221,12 @@ class Engine:
         except Exception as e:
             logger.exception("reading last row failed")
             self.last_error = f"reading last row failed: {e}"
+
+    def _retry_locked_plugin(self):
+        """SqliteTarget can never be off: rebuild it if it failed to start."""
+        entry = self.plugins.get(LOCKED_PLUGIN)
+        if entry is not None and entry["instance"] is None:
+            self._construct(entry)
 
     def _live_entries(self, exclude=()):
         entries = [e for e in self.plugins.values()
@@ -308,6 +317,9 @@ class Engine:
         if entry is None:
             raise CommandError(f"unknown plugin: {name}")
         if name == LOCKED_PLUGIN:
+            if entry["instance"] is None:
+                self._retry_locked_plugin()  # a failed start: toggling retries it
+                return
             raise CommandError(f"{LOCKED_PLUGIN} cannot be turned off")
         if entry["enabled"]:
             entry["enabled"] = False

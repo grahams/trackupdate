@@ -254,3 +254,44 @@ def test_run_processes_commands_and_returns_after_end_show(config):
     eng.run(0.01)
     assert eng.snapshot()["phase"] == "ended"
     assert FileRecorder.constructed == 1
+
+
+def flaky_sqlite():
+    """A SqliteTarget whose first construction fails, as if the db were locked."""
+    calls = [0]
+
+    class Flaky(SqliteTarget):
+        def __init__(self, *args):
+            calls[0] += 1
+            if calls[0] == 1:
+                raise sqlite3.OperationalError("database is locked")
+            super().__init__(*args)
+    Flaky.__name__ = "SqliteTarget"
+    return Flaky
+
+
+def _sqlite_state(eng):
+    return [p for p in eng.snapshot()["plugins"] if p["name"] == "SqliteTarget"][0]
+
+
+def test_failed_sqlite_retried_on_next_dispatch(config):
+    eng = make(config, [rep("A")], classes=(flaky_sqlite(), LiveRecorder))
+    assert _sqlite_state(eng)["enabled"] is False
+    assert "database is locked" in eng.snapshot()["lastError"]
+    eng.tick()
+    assert rows(config) == [("A",)]
+    assert _sqlite_state(eng)["enabled"] is True
+    assert eng.snapshot()["lastError"] is None
+    assert eng.snapshot()["currentRowid"] is not None
+
+
+def test_toggling_failed_sqlite_retries_it(config):
+    eng = make(config, [rep("A")], classes=(flaky_sqlite(), LiveRecorder))
+    eng.handle({"cmd": "toggle_plugin", "name": "SqliteTarget"})
+    assert _sqlite_state(eng)["enabled"] is True
+    assert eng.snapshot()["lastError"] is None
+    eng.handle({"cmd": "toggle_plugin", "name": "SqliteTarget"})
+    assert "cannot be turned off" in eng.snapshot()["lastError"]
+    assert _sqlite_state(eng)["enabled"] is True
+    eng.tick()
+    assert rows(config) == [("A",)]
