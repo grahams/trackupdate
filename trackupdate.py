@@ -28,6 +28,7 @@ import configparser
 import glob
 import logging
 import subprocess
+import track_source
 import json
 import traceback
 import sqlite3
@@ -273,25 +274,6 @@ Example:
 
             time.sleep(self.pollTime)
 
-    def searchArtwork(self, trackName, searchArtist, searchAlbum):
-        url100 = None
-        url500 = None
-
-        try:
-            searchTerm = quote(f"{searchArtist} {trackName}")
-            searchUrl = f'https://itunes.apple.com/search?term={searchTerm}&entity=song&limit=1'
-            trackSearch = requests.get(searchUrl, timeout=5).json()
-
-            if(trackSearch['resultCount'] > 0):
-                url100 = trackSearch["results"][0]["artworkUrl100"]
-                url500 = re.sub(r'100x100', '500x500', url100)
-        except requests.exceptions.RequestException as e:
-            print(f"Cover image search failed: {e}")
-        except json.JSONDecodeError as e:
-            print(f"Cover image JSON decode failed: {e}")
-
-        return url500
-
     def archiveLoop(self):
         for row in self.c.execute("SELECT * FROM trackupdate WHERE episodeNumber = '%s' ORDER BY startTime" % self.episodeNumber):
             episodeNumber = row[0]
@@ -346,7 +328,7 @@ Example:
         if('trackId' in t.keys()):
             iId = t['trackId']
 
-        artworkUrl = self.searchArtwork(iName,iArtist,iAlbum)
+        artworkUrl = track_source.search_artwork(iName,iArtist)
 
         if(artworkUrl == None):
             self.logger.debug("No artwork found in search, using default")
