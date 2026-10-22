@@ -300,3 +300,23 @@ def test_engine_link_reports_retrying_when_no_engine():
         assert await it.__anext__() == {"event": "link", "status": DISCONNECTED}
         await it.aclose()
     run(body())
+
+
+def test_format_header_survives_bad_on_air_since():
+    now = datetime(2026, 10, 21, 21, 0, 0)
+    assert format_header("412", "garbage", now) == "trackupdate · Episode 412"
+    assert format_header("412", 5, now) == "trackupdate · Episode 412"
+
+
+def test_bad_on_air_since_does_not_kill_the_app():
+    async def body():
+        app = TrackUpdateApp(FakeLink())
+        async with app.run_test(size=(110, 30)) as pilot:
+            header = app.query_one("#header", Static)
+            for bad in ("garbage", 5):
+                app.apply_snapshot(snapshot(onAirSince=bad))
+                app._tick()
+                await pilot.pause(1.2)  # let the real 1 s timer fire too
+                assert app.is_running
+                assert "Episode 412" in str(header.render())
+    run(body())

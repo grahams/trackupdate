@@ -89,7 +89,11 @@ def format_header(episode, on_air_since, now: datetime) -> str:
     head = f"trackupdate · Episode {episode}"
     if not on_air_since:
         return f"{head} · not on air yet"
-    secs = max(0, int((now - datetime.fromisoformat(on_air_since)).total_seconds()))
+    try:
+        since = datetime.fromisoformat(on_air_since)
+        secs = max(0, int((now - since).total_seconds()))
+    except (ValueError, TypeError):
+        return head  # an unexpected value must never break the clock
     h, rem = divmod(secs, 3600)
     m, s = divmod(rem, 60)
     return f"{head} · on air {h:02d}:{m:02d}:{s:02d}"
@@ -399,7 +403,11 @@ class TrackUpdateApp(App):
         return self.screen_stack[0]
 
     def _tick(self) -> None:
-        self._main().refresh_header()
+        # Timer exceptions would exit the app, so none may escape.
+        try:
+            self._main().refresh_header()
+        except Exception as e:
+            self.log.error(f"header refresh failed: {e!r}")
 
     # ---- link ------------------------------------------------------------
 
