@@ -308,3 +308,40 @@ def test_restart_pushes_current_track_to_live_plugins(config):
     make(config, [], classes=(SqliteTarget, Watch, FileRecorder))
     assert seen == [("A", 1)]
     assert rows(config) == [("A",)]
+
+
+def test_failed_insert_leaves_no_current_row(config):
+    class FailOnce(SqliteTarget):
+        failed = False
+
+        def logTrack(self, track, startTime):
+            if not FailOnce.failed:
+                FailOnce.failed = track.title == "B"
+                if FailOnce.failed:
+                    raise sqlite3.OperationalError("disk I/O error")
+            super().logTrack(track, startTime)
+    FailOnce.__name__ = "SqliteTarget"
+
+    eng = make(config, [rep("A"), rep("B")], classes=(FailOnce, LiveRecorder))
+    eng.tick()
+    a_rowid = eng.snapshot()["currentRowid"]
+    eng.tick()
+    assert rows(config) == [("A",)]
+    assert eng.snapshot()["currentRowid"] is None
+    eng.handle({"cmd": "edit_row", "rowid": a_rowid, "title": "A fixed",
+                "artist": "Art A", "album": "Alb"})
+    assert rows(config) == [("A fixed",)]
+    assert eng.session.current.title == "B"
+    assert LiveRecorder.tracks == ["A", "B"]
+
+
+def test_stop_track_row_is_current(config):
+    config.read_dict({"trackupdate": {
+        "useStopValues": "True", "stopTitle": "Stop", "stopArtist": "Host",
+        "stopAlbum": "Show"}})
+    eng = make(config, [rep("A"), {}])
+    eng.tick()
+    eng.tick()
+    snap = eng.snapshot()
+    assert snap["nowPlaying"]["title"] == "Stop"
+    assert snap["currentRowid"] == snap["tracks"][-1]["rowid"]

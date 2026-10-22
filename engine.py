@@ -232,10 +232,19 @@ class Engine:
 
         try:
             last = episode_db.last_row(self.conn, self.episode)
-            self.current_rowid = last["rowid"] if last else None
+            self.current_rowid = (last["rowid"] if self._is_current_row(last)
+                                  else None)  # None: the insert failed
         except Exception as e:
             logger.exception("reading last row failed")
             self.last_error = f"reading last row failed: {e}"
+
+    def _is_current_row(self, row):
+        cur = self.session.current
+        if row is None or cur is None:
+            return False
+        if cur.uniqueId:
+            return row["uniqueId"] == cur.uniqueId
+        return (row["title"], row["artist"]) == (cur.title, cur.artist)
 
     def _retry_locked_plugin(self):
         """SqliteTarget can never be off: rebuild it if it failed to start."""
