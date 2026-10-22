@@ -3,3 +3,5 @@
 .*.swp
 db/
 db/trackupdate.sqlite
+.superpowers/
+.worktrees/
