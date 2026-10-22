@@ -195,6 +195,15 @@ Example:
                                       "-e", self.episodeNumber, "--plain"]
                      + self.engineArgs())
 
+        # Load the TUI before starting anything, so a missing textual can't
+        # leave a detached engine running with no way to attach to it.
+        try:
+            import tui  # only live mode needs textual
+        except ImportError as e:
+            print(f"Can't load the TUI ({e}). Install textual, or run with "
+                  "--plain.", file=sys.stderr)
+            sys.exit(1)
+
         try:
             started = launcher.ensure_engine(
                 self.episodeNumber, grabber=self.grabber,
@@ -211,8 +220,6 @@ Example:
         if(not started and (self.pollTime is not None or self.pluginPattern)):
             print("Attached to the running engine; its poll time and plugin "
                   "pattern are kept.", file=sys.stderr)
-
-        import tui  # only live mode needs textual
 
         try:
             app = tui.TrackUpdateApp(tui.EngineLink())
