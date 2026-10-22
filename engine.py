@@ -509,6 +509,14 @@ def main(argv=None):
         threading.Thread(target=engine.submit, args=({"cmd": "end_show"},),
                          daemon=True).start()
 
+    # Start before serving: a client that finds the socket must find a live
+    # engine, and a failure here must exit so the launcher reports it.
+    try:
+        engine.start()
+    except Exception:
+        logger.exception("engine failed to start")
+        return 1
+
     server = engine_server.serve(engine)
     ended = False
     try:

@@ -304,3 +304,16 @@ def test_settings_are_passed_to_a_new_engine_only(env, monkeypatch):
     # Attaching to the running engine spawns nothing and reports it.
     assert launcher.ensure_engine("900", poll_time=7) is False
     assert len(commands) == 1
+
+
+def test_engine_start_failure_is_reported_not_served(env, tmp_path):
+    rc = os.path.join(os.environ["HOME"], ".trackupdaterc")
+    with open(rc, "w") as f:
+        f.write("[trackupdate]\npollTime: 1\n\n[SqliteTarget]\nenabled: True\n"
+                f"dbPath: {tmp_path / 'missing' / 'show.sqlite'}\n")
+    with pytest.raises(launcher.EngineStartFailed) as exc:
+        launcher.ensure_engine("900", grabber=FAKE_GRABBER)
+    assert "exited with status 1" in str(exc.value)
+    assert "unable to open database file" in str(exc.value)
+    assert not runtime.info_path().exists()
+    assert not runtime.socket_path().exists()
