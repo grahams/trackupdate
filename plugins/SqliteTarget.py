@@ -33,6 +33,9 @@ import sqlite3
 
 class SqliteTarget(Target):
     pluginName = "Sqlite Writer"
+    # Dispatched first, so a slow plugin (e.g. an artwork download) can never
+    # delay the db insert.
+    priority = 100
     episodeNumber = -1
     conn = None
     c = None

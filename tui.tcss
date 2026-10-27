@@ -1,0 +1,116 @@
+#header {
+    height: 1;
+    padding: 0 1;
+    background: $primary-background;
+    color: $text;
+    text-style: bold;
+}
+
+#now-playing {
+    height: auto;
+    border: round $primary;
+    border-title-color: $text;
+    padding: 0 1;
+}
+
+#now-playing.override {
+    border: round $warning;
+    border-title-color: $warning;
+    color: $warning;
+}
+
+#now-playing.override #np-source {
+    text-style: bold;
+}
+
+.np-line {
+    height: 1;
+}
+
+#np-title, #np-album {
+    width: 1fr;
+}
+
+#np-length, #np-source {
+    width: auto;
+}
+
+#tabs {
+    height: 1fr;
+}
+
+#tracks {
+    height: 1fr;
+}
+
+.plugin-group {
+    margin: 1 0 0 1;
+    text-style: bold;
+}
+
+.plugin-row {
+    height: auto;
+}
+
+.plugin-name {
+    padding: 1 1;
+}
+
+#status {
+    height: 1;
+    padding: 0 1;
+}
+
+TrackForm {
+    align: center middle;
+}
+
+#form {
+    width: 60;
+    height: auto;
+    border: round $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#form-heading {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#form-buttons {
+    height: auto;
+    margin-top: 1;
+    align-horizontal: right;
+}
+
+#form-buttons Button {
+    margin-left: 1;
+}
+
+QuitScreen, EndingScreen {
+    align: center middle;
+}
+
+#quit, #ending {
+    width: 70;
+    height: auto;
+    border: round $primary;
+    background: $surface;
+    padding: 1 2;
+}
+
+#quit-heading {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#quit-buttons {
+    height: auto;
+    margin-top: 1;
+    align-horizontal: right;
+}
+
+#quit-buttons Button {
+    margin-left: 1;
+}

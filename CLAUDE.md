@@ -11,8 +11,11 @@ Despite the historical mentions of iTunes/Apple Music in the README, the live tr
 ## Running things
 
 ```bash
-# Live mode — poll Swinsian and dispatch tracks to enabled plugins
-./trackupdate.py -e <episode-number> [-v] [-t <pollSeconds>]
+# Live mode — start (or reattach to) the background engine and open the TUI
+./trackupdate.py -e <episode-number> [-v] [-t <pollSeconds>] [-p <pattern>]
+
+# Live mode without the TUI — engine in the foreground, Ctrl-C ends the show
+./trackupdate.py -e <episode-number> --plain [-v]
 
 # Archive mode — replay an episode's tracks from the sqlite db through plugins
 # (only plugins with enableArchive = True will fire; see below)
@@ -25,7 +28,7 @@ python web_editor.py
 util/m3u_import.py -e <episode-number> -d "<YYYY-MM-DD HH:MM:SS>" -f <path-to-m3u>
 ```
 
-There are no tests, no linter config, and no build step — it's a script-based project.
+Tests: `python3 -m pytest` (needs `pytest` and `textual`). There is no linter config and no build step.
 
 The conda env in `environment.yml` is stale (Python 3.10, pinned 2022 packages). Treat it as a hint about dependencies (`requests`, `mutagen`, `mastodon-py`, `tabulate`, `flask` for the editor) rather than a reproducible environment.
 
@@ -35,19 +38,30 @@ Everything is driven by `~/.trackupdaterc` (INI format, see `example-trackupdate
 
 Key plumbing values: `[SqliteTarget].dbPath` is *also* read directly by `trackupdate.py` (archive mode) and `web_editor.py` to locate the database — it is the canonical DB path even when `SqliteTarget` itself is disabled.
 
-`[trackupdate].pollScriptPath` is vestigial: it's loaded into `self.pollScriptPath` but never used. The live loop hardcodes `subprocess.check_output(["util/swinsian-track-grabber"])`. Don't rely on the config key to swap the track source.
+`[trackupdate].pollScriptPath` is vestigial: archive mode still insists the key exists, but nothing uses it. The grabber path is the absolute `track_source.GRABBER_PATH` (`<repo>/util/swinsian-track-grabber`; absolute because the engine runs detached). Don't rely on the config key to swap the track source; tests pass a fake via the hidden `--grabber` option.
 
 ## Plugin architecture
 
 This is the only piece of "big picture" that requires reading multiple files:
 
-- `Target.py` defines the base class. Subclasses set `pluginName`, `priority` (higher = called first; `pluginList` is sorted descending), and `enableArchive` (default `False`; archive mode skips plugins where this is `False`).
-- `trackupdate.py:loadPlugins` discovers plugins by `glob`'ing `plugins/<pattern>.py` (pattern overridable with `-p`). For each matching file, **the filename stem, the class name, and the config section name must all be identical** — `loadPlugins` derives the class name from the filename and then does `config.get(className, 'enabled')` and `getattr(mod, className)`.
+- `Target.py` defines the base class. Subclasses set `pluginName`, `priority` (higher = called first; `plugin_loader.discover` sorts descending), and `enableArchive` (default `False`; archive mode skips plugins where this is `False`).
+- `plugin_loader.discover` finds plugins by `glob`'ing `plugins/<pattern>` (pattern overridable with `-p`). For each matching file, **the filename stem, the class name, and the config section name must all be identical** — it derives the class name from the filename and then does `config.get(className, 'enabled')` and `getattr(mod, className)`.
 - Each plugin's `logTrack(track, startTime)` is invoked on every track change. `Track` (see `Track.py`) is a dataclass with `title/artist/album/length/artworkURL/uniqueId/ignore`.
 - The `ignore` flag is set automatically when the album matches `[trackupdate].ignoreAlbum` — plugins should respect it (e.g., skip from listings, but still update "now playing" state).
-- `processCurrentTrack` does an iTunes Search API lookup to attach `artworkUrl` before dispatch; falls back to `coverImageBaseURL/stopArtwork` (defaults to today's `YYYYMMDD.jpg`).
+- The engine (`track_source.search_artwork`) does an iTunes Search API lookup to attach `artworkUrl` before dispatch; falls back to `coverImageBaseURL/stopArtwork` (defaults to today's `YYYYMMDD.jpg`).
 
 To add a new target: subclass `Target`, drop it in `plugins/`, ensure filename == classname == config section, and add `enabled: True` to the rc file.
+
+## Live engine and TUI
+
+Live mode is two processes. `engine.py` polls Swinsian, dispatches to plugins, writes the db and serves NDJSON snapshots/commands on a Unix socket; `launcher.ensure_engine` spawns it detached (or attaches to the running one; a different episode is refused). `tui.py` is a Textual client of that socket. Killing or closing the TUI never stops the engine — re-running `./trackupdate.py -e N` reattaches with the full history.
+
+- Runtime files live in `~/.trackupdate/` (override with env `TRACKUPDATE_RUNTIME_DIR`; keep it short, AF_UNIX paths max out near 104 bytes): `engine.sock`, `engine.json` (episode + pid), `override.json` (a persisted manual override), `engine.log` (the detached engine's stdout/stderr — look here first).
+- **Live vs file plugins:** only plugins with `enableArchive = False` run live (`plugin_loader.is_live`). `enableArchive = True` plugins (CUE/list/wiki/CSV/Hugo) are **constructed only at end of show**, by the same archive pass as `-a` — their `__init__` opens output files with `'w'`, so constructing one early would truncate them. Don't instantiate them anywhere else.
+- `r` in the TUI sends `refresh`: an immediate poll, and if Swinsian is still on the current track (same `trackId`) with different title/artist/album, those tags replace the current row's — including any TUI edit of that row. Length and artwork are not re-read.
+- `[trackupdate].useIPv6` (default `True`): `False` makes the engine's `requests` calls (artwork search and download) IPv4-only via `track_source.set_ipv6`. `requests` tries addresses serially, so a broken IPv6 route stalls each lookup ~5 s per address; set to `False` when Comcast's IPv6 path to Akamai/Apple is broken.
+- `SqliteTarget` can't be toggled off; plugin toggles in the TUI are session-only and never write the rc file. `StdioTarget` only loads under `--plain`.
+- Quitting: Ctrl-C / q / Ctrl-Q in the TUI opens a prompt — *End show* (generate the files, stop the engine), *Close window* (engine keeps logging), *Cancel*. Under `--plain`, Ctrl-C (or SIGTERM to the engine) ends the show.
 
 ## Database schema
 

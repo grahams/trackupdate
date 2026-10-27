@@ -233,6 +233,17 @@ def parse_m3u(m3u_path):
     
     return tracks
 
+def read_ignore_album(config):
+    """[trackupdate] ignoreAlbum from the rc, or None (never ignore)."""
+    if config is None:
+        return None
+    return config.get('trackupdate', 'ignoreAlbum', fallback='') or None
+
+def apply_ignore_album(tracks, ignore_album):
+    """Mark tracks whose album is ignoreAlbum as ignored, as the live engine does."""
+    for track in tracks:
+        track['ignore'] = bool(ignore_album) and track.get('album') == ignore_album
+
 def concatenate_audio_files(tracks, m3u_base_dir, output_path):
     """Concatenate all audio files from tracks into a single MP3 using ffmpeg"""
     
@@ -395,7 +406,8 @@ def concatenate_audio_files(tracks, m3u_base_dir, output_path):
         except OSError:
             pass
 
-def import_m3u_to_db(tracks, m3u_path, episode_number, start_datetime, db_path, cover_image_base_url=None):
+def import_m3u_to_db(tracks, m3u_path, episode_number, start_datetime, db_path, cover_image_base_url=None,
+                     ignore_album=None):
     """Import tracks from m3u file into database"""
     
     if not tracks:
@@ -452,6 +464,8 @@ def import_m3u_to_db(tracks, m3u_path, episode_number, start_datetime, db_path, 
         if artwork_url:
             track['artworkUrl'] = artwork_url
     
+    apply_ignore_album(tracks, ignore_album)
+
     if duration_updates > 0:
         print(f"Updated {duration_updates} track durations using ffprobe (accurate file durations)")
     
@@ -630,7 +644,8 @@ Examples:
             sys.exit(1)
     
     # Import tracks to database
-    success = import_m3u_to_db(tracks, args.file, args.episode, start_datetime, db_path, cover_image_base_url)
+    success = import_m3u_to_db(tracks, args.file, args.episode, start_datetime, db_path, cover_image_base_url,
+                               ignore_album=read_ignore_album(config))
     
     if not success:
         sys.exit(1)

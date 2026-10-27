@@ -25,7 +25,7 @@ util_path = os.path.join(os.path.dirname(__file__), 'util')
 if util_path not in sys.path:
     sys.path.append(util_path)
 try:
-    from m3u_import import parse_m3u, extract_audio_metadata, get_audio_duration_ffprobe, format_length as format_length_m3u, parse_length_seconds
+    from m3u_import import parse_m3u, extract_audio_metadata, get_audio_duration_ffprobe, format_length as format_length_m3u, parse_length_seconds, read_ignore_album, apply_ignore_album
     M3U_IMPORT_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: M3U import not available: {e}")
@@ -487,6 +487,7 @@ def import_m3u():
         db_path = get_db_path()
         config_path = os.path.expanduser('~/.trackupdaterc')
         cover_image_base_url = None
+        config = None
         
         if os.path.isfile(config_path):
             config = configparser.ConfigParser()
@@ -535,6 +536,8 @@ def import_m3u():
                 track['artworkUrl'] = f"{cover_image_base_url}/{artwork_filename}"
             else:
                 track['artworkUrl'] = ""
+
+        apply_ignore_album(tracks, read_ignore_album(config))
         
         # Connect to database and import tracks
         conn = get_db_connection()

@@ -52,6 +52,8 @@ dependencies:
       - mutagen
       - python-dateutil==2.8.1
       - python-magic==0.4.27
+      - pytest
+      - textual
       - tqdm==4.48.0
       - visidata==2.8
 prefix: /opt/homebrew/Caskroom/miniconda/base/envs/trackupdate
