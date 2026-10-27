@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
 
 # Copyright (c) 2009-2014 Sean M. Graham <www.sean-graham.com>
 # 

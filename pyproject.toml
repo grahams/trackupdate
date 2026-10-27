@@ -1,0 +1,20 @@
+[project]
+name = "trackupdate"
+version = "0.1.0"
+description = "Radio-show authoring toolchain: now-playing tracking, plugins, and a web editor"
+requires-python = ">=3.13"
+dependencies = [
+    "flask",
+    "mutagen",
+    "requests",
+    "tabulate",
+    "textual",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+]
+
+[tool.uv]
+package = false
