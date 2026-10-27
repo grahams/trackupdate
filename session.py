@@ -79,6 +79,28 @@ class Session:
         self.source = source
         return track
 
+    def refresh_current(self):
+        """Adopt Swinsian's current tags for the track already playing.
+
+        Returns the updated current track, or None when the last report is a
+        different track (the regular poll handles that), nothing is playing,
+        an override is active, or the text is unchanged.
+        """
+        report, cur = self.last_report, self.current
+        if self.override is not None or not report or cur is None:
+            return None
+        if not cur.uniqueId or report.get("trackId", "") != cur.uniqueId:
+            return None
+        title = report.get("trackName", "")
+        artist = report.get("trackArtist", "")
+        album = report.get("trackAlbum", "")
+        if (title, artist, album) == (cur.title, cur.artist, cur.album):
+            return None
+        ignore = cur.ignore if album == cur.album else album == self.ignore_album
+        self.current = replace(cur, title=title, artist=artist, album=album,
+                               ignore=ignore)
+        return self.current
+
     def set_override(self, title, artist, album, length):
         track = Track(title=title, artist=artist, album=album, length=length,
                       artworkURL=None, uniqueId=str(uuid.uuid4()),

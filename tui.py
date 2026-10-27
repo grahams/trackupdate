@@ -288,6 +288,7 @@ class MainScreen(Screen):
         Binding("i", "toggle_ignore", "Ignore"),
         Binding("o", "override", "Override"),
         Binding("x", "cancel_override", "End override"),
+        Binding("r", "refresh", "Refresh"),
         Binding("tab", "switch_tab", "Tracks/Plugins"),
         # Priority on the screen, not the app: inside a form `q` must type.
         Binding("q", "app.quit_prompt", "Quit", priority=True),
@@ -367,6 +368,9 @@ class MainScreen(Screen):
     def action_cancel_override(self) -> None:
         if self.app.snap.get("overrideActive"):
             self.app.send({"cmd": "cancel_override"})
+
+    def action_refresh(self) -> None:
+        self.app.send({"cmd": "refresh"})
 
     def action_switch_tab(self) -> None:
         tabs = self.query_one(TabbedContent)

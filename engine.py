@@ -339,6 +339,20 @@ class Engine:
         self.session.cancel_override()
         self._sync_override(before)
 
+    def _cmd_refresh(self, cmd):
+        """Poll Swinsian now; if the same track's tags changed, take them."""
+        self.tick()
+        if self.phase != "live" or self.last_error == POLL_FAILED:
+            return
+        track = self.session.refresh_current()
+        if track is None:
+            return
+        if self.current_rowid is not None:
+            episode_db.update_text(self.conn, self.current_rowid,
+                                   track.title, track.artist, track.album)
+            episode_db.set_ignore(self.conn, self.current_rowid, track.ignore)
+        self._push_current()
+
     def _cmd_toggle_plugin(self, cmd):
         name = _field(cmd, "name", str)
         entry = self.plugins.get(name)
@@ -368,6 +382,7 @@ class Engine:
         "set_override": _cmd_set_override,
         "cancel_override": _cmd_cancel_override,
         "toggle_plugin": _cmd_toggle_plugin,
+        "refresh": _cmd_refresh,
     }
 
     # ---- end of show -----------------------------------------------------

@@ -580,3 +580,16 @@ def test_end_show_disabled_while_disconnected():
             await pilot.pause()
             assert not app.screen.query_one("#end", Button).disabled
     run(body())
+
+
+def test_refresh_key_sends_refresh():
+    async def body():
+        link = FakeLink()
+        app = TrackUpdateApp(link)
+        async with app.run_test(size=(110, 30)) as pilot:
+            app.apply_snapshot(snapshot())
+            await pilot.pause()
+            await pilot.press("r")
+            await wait_until(pilot, lambda: link.sent)
+            assert link.sent == [{"cmd": "refresh"}]
+    run(body())

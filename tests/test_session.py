@@ -130,3 +130,23 @@ def test_cancel_override_waits_for_next_change():
     assert s.override is None
     assert s.on_poll(rep("A")) is None
     assert s.on_poll(rep("B", id="2")).title == "B"
+
+
+def test_refresh_adopts_new_tags_for_same_track():
+    s = make(ignore_album="Bumpers")
+    s.on_poll(rep("Tpyo"))
+    assert s.on_poll(rep("Typo", album="Bumpers")) is None  # same id: deduped
+    t = s.refresh_current()
+    assert (t.title, t.album, t.ignore) == ("Typo", "Bumpers", True)
+    assert s.current is t
+    assert s.refresh_current() is None  # nothing new
+
+
+def test_refresh_ignores_other_track_and_override():
+    s = make()
+    s.on_poll(rep("A"))
+    s.last_report = rep("B", id="2")
+    assert s.refresh_current() is None
+    s.last_report = rep("A2")
+    s.set_override("Live", "Guest", "", "")
+    assert s.refresh_current() is None

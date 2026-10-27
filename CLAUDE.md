@@ -58,6 +58,7 @@ Live mode is two processes. `engine.py` polls Swinsian, dispatches to plugins, w
 
 - Runtime files live in `~/.trackupdate/` (override with env `TRACKUPDATE_RUNTIME_DIR`; keep it short, AF_UNIX paths max out near 104 bytes): `engine.sock`, `engine.json` (episode + pid), `override.json` (a persisted manual override), `engine.log` (the detached engine's stdout/stderr — look here first).
 - **Live vs file plugins:** only plugins with `enableArchive = False` run live (`plugin_loader.is_live`). `enableArchive = True` plugins (CUE/list/wiki/CSV/Hugo) are **constructed only at end of show**, by the same archive pass as `-a` — their `__init__` opens output files with `'w'`, so constructing one early would truncate them. Don't instantiate them anywhere else.
+- `r` in the TUI sends `refresh`: an immediate poll, and if Swinsian is still on the current track (same `trackId`) with different title/artist/album, those tags replace the current row's — including any TUI edit of that row. Length and artwork are not re-read.
 - `SqliteTarget` can't be toggled off; plugin toggles in the TUI are session-only and never write the rc file. `StdioTarget` only loads under `--plain`.
 - Quitting: Ctrl-C / q / Ctrl-Q in the TUI opens a prompt — *End show* (generate the files, stop the engine), *Close window* (engine keeps logging), *Cancel*. Under `--plain`, Ctrl-C (or SIGTERM to the engine) ends the show.
 

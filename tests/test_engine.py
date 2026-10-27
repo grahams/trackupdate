@@ -345,3 +345,21 @@ def test_stop_track_row_is_current(config):
     snap = eng.snapshot()
     assert snap["nowPlaying"]["title"] == "Stop"
     assert snap["currentRowid"] == snap["tracks"][-1]["rowid"]
+
+
+def test_refresh_polls_now_and_updates_current_row(config):
+    fixed = dict(rep("A"), trackName="A fixed")
+    eng = make(config, [rep("A"), fixed])
+    eng.tick()
+    eng.handle({"cmd": "refresh"})
+    assert rows(config) == [("A fixed",)]
+    assert LiveRecorder.tracks == ["A", "A fixed"]
+    assert eng.snapshot()["nowPlaying"]["title"] == "A fixed"
+
+
+def test_refresh_picks_up_a_new_track(config):
+    eng = make(config, [rep("A"), rep("B")])
+    eng.tick()
+    eng.handle({"cmd": "refresh"})
+    assert rows(config) == [("A",), ("B",)]
+    assert LiveRecorder.tracks == ["A", "B"]
