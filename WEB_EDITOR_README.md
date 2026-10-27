@@ -13,14 +13,9 @@ A web-based tool for visually editing track times in the trackupdate database. F
 
 ## Installation
 
-1. Install Flask (if not already installed):
+1. Install dependencies (Flask is included in the project's `pyproject.toml`):
    ```bash
-   pip install flask
-   ```
-   
-   Or add to your conda environment:
-   ```bash
-   conda install -c conda-forge flask
+   uv sync
    ```
 
 2. Ensure your `~/.trackupdaterc` config file has the `[SqliteTarget]` section with the `dbPath` setting, or the editor will use the default path.
@@ -29,7 +24,7 @@ A web-based tool for visually editing track times in the trackupdate database. F
 
 1. Start the web server:
    ```bash
-   python web_editor.py
+   ./web_editor.py
    ```
 
 2. Open your browser and navigate to:

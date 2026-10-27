@@ -102,7 +102,7 @@ class CsvFileTarget(Target):
         if(self.initialTime == None):
             self.initialTime = startTime
 
-        if( (track.artworkURL != None) and (self.stopArtwork not in track.artworkURL) ):
+        if( track.artworkURL and (self.stopArtwork not in track.artworkURL) ):
             artworkPath = track.fetchArtwork(self.coverImagePath)
         else:
             artworkPath = f"{self.coverImagePath}/{self.stopArtwork}"

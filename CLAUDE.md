@@ -22,15 +22,15 @@ Despite the historical mentions of iTunes/Apple Music in the README, the live tr
 ./trackupdate.py -a -e <episode-number>
 
 # Web editor — Flask app on http://localhost:5042, edits the configured sqlite db
-python web_editor.py
+./web_editor.py
 
 # Import an m3u playlist as a synthesized episode (used for canned/pre-recorded shows)
 util/m3u_import.py -e <episode-number> -d "<YYYY-MM-DD HH:MM:SS>" -f <path-to-m3u>
 ```
 
-Tests: `python3 -m pytest` (needs `pytest` and `textual`). There is no linter config and no build step.
+Tests: `uv run pytest`. There is no linter config and no build step.
 
-The conda env in `environment.yml` is stale (Python 3.10, pinned 2022 packages). Treat it as a hint about dependencies (`requests`, `mutagen`, `mastodon-py`, `tabulate`, `flask` for the editor) rather than a reproducible environment.
+Dependencies are managed with uv: `pyproject.toml` (a non-package project, `[tool.uv] package = false`) plus the committed `uv.lock`; `uv sync` builds `.venv/`. The scripts' shebang is `#!/usr/bin/env -S uv run`, which finds the project by walking up from the *current directory*, not the script's — so `./trackupdate.py` works from anywhere inside the repo, but from outside it you need `uv run --project <repo> <repo>/trackupdate.py`. The detached engine is spawned with `sys.executable`, so it inherits the venv interpreter.
 
 ## Configuration
 

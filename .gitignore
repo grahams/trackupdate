@@ -5,3 +5,4 @@ db/
 db/trackupdate.sqlite
 .superpowers/
 .worktrees/
+.venv/

@@ -5,6 +5,8 @@ pollTime: 1
 pollScriptPath: Automation/GetCurrentTrackJSONWithArtwork.scpt
 coverImagePath: ~/radio/covers/
 coverImageBaseURL: https://example.com/radio/covers/
+# artwork used while stopped; empty means today's date, e.g. 20261026.jpg
+stopArtwork:
 # set to False to make artwork lookups use IPv4 only (for a network whose
 # IPv6 route to some hosts is broken; lookups otherwise stall for seconds)
 useIPv6: True
@@ -38,8 +40,10 @@ dbPath: ~/src/trackupdate/db/trackupdate.sqlite
 
 [ListCommon]
 showArtist: grahams
+showTitle: grahams' completely normal radio programme
 filePath: ~/Music/Audio Hijack
-archiveURL: http://example.com/media/archive/%Y%m%d%%20-%%20The%%20Antonelli%%20Hour%%20Radio%%20.mp3
+# base URL of the episode recordings; YYYYMMDD.mp3 is appended
+archiveURL: http://example.com/media/archive/
 
 [TrackListFileTarget]
 enabled: True
