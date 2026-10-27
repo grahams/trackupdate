@@ -8,10 +8,20 @@ import subprocess
 from urllib.parse import quote
 
 import requests
+import urllib3.util.connection
 
 GRABBER_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "util", "swinsian-track-grabber"
 )
+
+
+def set_ipv6(enabled: bool) -> None:
+    """Let requests use IPv6, or restrict it to IPv4 addresses.
+
+    requests tries a host's addresses one at a time, so a broken IPv6 route
+    stalls every lookup until each IPv6 address times out.
+    """
+    urllib3.util.connection.HAS_IPV6 = enabled
 
 
 def poll_swinsian(grabber=GRABBER_PATH, run=subprocess.check_output):

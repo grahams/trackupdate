@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+import track_source
 from track_source import GRABBER_PATH, poll_swinsian
 
 
@@ -39,3 +40,16 @@ def test_poll_none_on_nonzero_exit():
 
 def test_grabber_path_is_absolute():
     assert os.path.isabs(GRABBER_PATH)
+
+
+def test_set_ipv6_restricts_requests_to_ipv4():
+    import socket
+    from urllib3.util import connection
+    original = connection.HAS_IPV6
+    try:
+        track_source.set_ipv6(False)
+        assert connection.allowed_gai_family() == socket.AF_INET
+        track_source.set_ipv6(True)
+        assert connection.allowed_gai_family() == socket.AF_UNSPEC
+    finally:
+        connection.HAS_IPV6 = original

@@ -5,6 +5,9 @@ pollTime: 1
 pollScriptPath: Automation/GetCurrentTrackJSONWithArtwork.scpt
 coverImagePath: ~/radio/covers/
 coverImageBaseURL: https://example.com/radio/covers/
+# set to False to make artwork lookups use IPv4 only (for a network whose
+# IPv6 route to some hosts is broken; lookups otherwise stall for seconds)
+useIPv6: True
 
 # default info to appear while iTunes is stopped
 useStopValues: True

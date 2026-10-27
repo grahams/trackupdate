@@ -510,6 +510,10 @@ def main(argv=None):
     config = configparser.ConfigParser()
     config.read(os.path.expanduser("~/.trackupdaterc"))
     poll_time = args.polltime or config.getint("trackupdate", "pollTime", fallback=10)
+    use_ipv6 = config.getboolean("trackupdate", "useIPv6", fallback=True)
+    track_source.set_ipv6(use_ipv6)
+    if not use_ipv6:
+        logger.info("useIPv6 is False: web requests use IPv4 only")
     plugin_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plugins")
     classes = [cls for cls in plugin_loader.discover(config, plugin_dir, args.pattern)
                if args.plain or cls.__name__ != PLAIN_ONLY_PLUGIN]
