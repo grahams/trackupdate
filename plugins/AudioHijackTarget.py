@@ -75,7 +75,7 @@ class AudioHijackTarget(Target):
     def logTrack(self, track, startTime):
         artworkPath = ""
 
-        if( (track.artworkURL != None) and (self.stopArtwork not in track.artworkURL) ):
+        if( track.artworkURL and (self.stopArtwork not in track.artworkURL) ):
             artworkPath = track.fetchArtwork(self.coverImagePath)
         else:
             artworkPath = f"{self.coverImagePath}/{self.stopArtwork}"
